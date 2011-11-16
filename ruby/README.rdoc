@@ -1,0 +1,64 @@
+= Ruby Client for http://x-stream.ly
+
+== Description
+
+This provides some basic functionality for interacting with your X-Stream.ly
+account from Ruby.  You can send events from your server to the service
+(and hence your clients). And also manage callbacks that allow your server
+to be alerted when certain messages are sent.
+
+== Installation
+
+Just install via gem
+
+  # gem install xstreamly
+	
+== Usage
+
+To use it first require it
+
+  require 'json'
+	
+Then you need to create your client object
+
+  client = XStreamly::Client.new('your app key goes here', 'your e-mail goes here', 'your password goes here')
+	
+=== Sending Messages	
+Then to send messages
+
+  client.send('channel name', 'event name', 'data')
+	
+so to send an person object to the 'People' channel with event name 'Birth'
+you would do:
+
+  client.send('People', 'Brith', '{"name":"Bob Smith", "age":"0", "weight":".5"}')
+
+=== Managing Callbacks
+call backs are webhooks that X-Stream.ly can use to notify your server that
+a message has been sent.
+
+To create a callback
+
+  client.setCallback('channel', 'endpoint', 'secret', 'event - optional');
+
+so if you called this with
+
+  client.setCallback('MyChannel1', 'http://123.234.100.100/callback', 'no one knows this', nil);
+	
+every time a message is sent on MyChannel1 the X-Stream.ly service will post
+a message to http://123.234.100.100/callback that has the form '{"Secret":
+"no one knows this","Data":"the message contents here"}' the secret allows
+you to know that this message came from X-Stream.ly and not some third party
+
+To list all the callbacks that are currently active
+
+  client.getCallbacks()
+	
+The result will look like {"items"=>[{"end_point"=>"http://123.234.100.100/callback", "last_push_result"=>"OK", "number_of_pushes"=>6, "channel"=>"Brian", "last_push"=>"2011-11-01T18:58:13.287Z", "secret"=>"Frank", "key"=>1}]}
+
+To delete a callback you have to reference the key from the getCallbacks call
+and call removeCallback
+
+  client.removeCallback(1)
+	
+For any questions or comments please contact support@x-stream.ly
