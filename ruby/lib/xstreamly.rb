@@ -7,27 +7,27 @@ require 'net/http'
 
 module XStreamly
 	class Client
-		def initialize(appKey,email,password)
-			@appKey = appKey
-			@email = email
-			@password = password
-			@http = Net::HTTP.new('secure.x-stream.ly', 443)
-			@http.use_ssl = true
-			
-		end
+    def initialize(appKey,email,password)
+      @appKey = appKey
+      @email = email
+      @password = password
+      @http = Net::HTTP.new('secure.x-stream.ly', 443)
+      @http.use_ssl = true
+    end
 		
-		def send(channel, eventName, data)
-			req = Net::HTTP::Post.new(URI.encode('/api/v1.0/'+@appKey+'/channels/'+channel+'/events/'+eventName), initheader = {'Content-Type' =>'application/json'})
-			req.basic_auth @email, @password
+    def send(channel, eventName, data)
+	    req = Net::HTTP::Post.new(URI.encode('/api/v1.0/'+@appKey+'/channels/'+channel+'/events/'+eventName), initheader = {'Content-Type' =>'application/json'})
+	    req.basic_auth @email, @password
 
-			req.body = data
-			response = @http.request(req)
-      case response.code.to_i
-          when 202
+	    req.body = data
+	    response = @http.request(req)
+	    result = response.code.to_i
+      case result
+          when 200..299
           	return true
           else 
-          	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
-      end
+          	raise RuntimeError, "Unknown error (status code #{result}): #{response.body}"
+          end
     end
         
 		def setCallback(channel,endPoint,secret,eventName)
@@ -38,7 +38,7 @@ module XStreamly
 	    response = @http.request(req)
           
       case response.code.to_i
-        when 200
+        when 200..299
         	return true
         else 
         	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
@@ -51,7 +51,7 @@ module XStreamly
       response = @http.request(req)
 	
       case response.code.to_i
-        when 202
+        when 200..299
         	return true
         else 
         	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
@@ -64,7 +64,7 @@ module XStreamly
 	    response = @http.request(req)
 	
       case response.code.to_i
-        when 200
+        when 200..299
         	return (JSON(response.body))['items']
         else 
         	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
@@ -79,7 +79,7 @@ module XStreamly
 	    response = @http.request(req)
           
       case response.code.to_i
-        when 202
+        when 200..299
         	return true
         else 
         	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
@@ -122,7 +122,7 @@ module XStreamly
       response = @http.request(req)
 	
       case response.code.to_i
-        when 202
+        when 200..299
         	return true
         else 
         	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
@@ -135,7 +135,7 @@ module XStreamly
 	    response = @http.request(req)
 	
       case response.code.to_i
-        when 200
+        when 200..299
         	return (JSON(response.body))['items']
         else 
         	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
@@ -144,3 +144,6 @@ module XStreamly
 
   end
 end
+
+client = XStreamly::Client.new('10bc1643-c9f5-4210-9814-cae3203af316','bwillard@x-stream.ly','dcba4321');
+client.setCallback('frank','http://127.0.0.1:3002','secret','event');
