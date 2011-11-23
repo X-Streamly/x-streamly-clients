@@ -39,7 +39,7 @@ module XStreamly
           
       case response.code.to_i
         when 200..299
-        	return true
+        	return response.body
         else 
         	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
     	end
@@ -80,7 +80,7 @@ module XStreamly
           
       case response.code.to_i
         when 200..299
-        	return true
+        	return response.body
         else 
         	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
     	end
@@ -144,6 +144,3 @@ module XStreamly
 
   end
 end
-
-client = XStreamly::Client.new('10bc1643-c9f5-4210-9814-cae3203af316','bwillard@x-stream.ly','dcba4321');
-client.setCallback('frank','http://127.0.0.1:3002','secret','event');
