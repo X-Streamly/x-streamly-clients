@@ -34,7 +34,7 @@ module XStreamly
       req = Net::HTTP::Post.new(URI.encode('/api/v1.1/'+@appKey+'/feeds/out/custom'), initheader = {'Content-Type' =>'application/json'})
 	    req.basic_auth @email, @password
 
-	    req.body = '{"channel":"'+channel+'","endpoint":"'+endPoint+'", "secret":"'+secret+'"}'
+	    req.body = '{"channel":"'+channel+'","endpoint":"'+endPoint+'", "secret":"'+secret+'", "event": "'+eventName+'"}'
 	    response = @http.request(req)
           
       case response.code.to_i
