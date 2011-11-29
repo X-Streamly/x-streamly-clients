@@ -144,6 +144,3 @@ module XStreamly
 
   end
 end
-
-client = XStreamly::Client.new('10bc1643-c9f5-4210-9814-cae3203af316','bwillard@x-stream.ly','dcba4321')
-client.setTwitterStream('c','e',client.generateRequestData('#pizza','25U5WYYdEXWDOVH5m4kA','htkMFbId5xPtGyCy7cbnQjlKf4vETJsfbpBY1LFj0k','373019787-k1eR2SidnEuX6HqCrFo5TMvctlJa9mS9Tq6FwmUj','1AmP1VOFG7xDFZ31vEc3mzckqe91LSxWUsbkhzyk'))
