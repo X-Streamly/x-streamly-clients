@@ -171,7 +171,7 @@ namespace XStreamly.Client
                              + "%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D" + timeStamp
                              + "%26oauth_token%3D" + permissions.AccessToken
                              + "%26oauth_version%3D1.0"
-                             + "%26track%3D" +track;
+                             + "%26track%3D" +HttpUtility.UrlEncode(track);
 
             string key = permissions.ConsumerSecret + "&" + HttpUtility.UrlEncode(permissions.AccessTokenSecret);
 
