@@ -141,6 +141,45 @@ module XStreamly
         	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
     	end
     end
+    
+    def activeChannels()
+      req = Net::HTTP::Get.new(URI.encode('/api/v1.1/'+@appKey+'/activeChannels'), initheader = {'Content-Type' =>'application/json'})
+	    req.basic_auth @email, @password
+	    response = @http.request(req)
+	
+      case response.code.to_i
+        when 200..299
+        	return (JSON(response.body))['channels']
+        else 
+        	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
+    	end
+    end
+    
+    def usageConnections()
+      req = Net::HTTP::Get.new(URI.encode('/usage/connections'), initheader = {'Content-Type' =>'application/json'})
+	    req.basic_auth @email, @password
+	    response = @http.request(req)
+	
+      case response.code.to_i
+        when 200..299
+        	return (JSON(response.body))['data']
+        else 
+        	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
+    	end
+    end
+    
+    def usageMessages()
+      req = Net::HTTP::Get.new(URI.encode('/usage/messages'), initheader = {'Content-Type' =>'application/json'})
+	    req.basic_auth @email, @password
+	    response = @http.request(req)
+	
+      case response.code.to_i
+        when 200..299
+        	return (JSON(response.body))['data']
+        else 
+        	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
+    	end
+    end
 
   end
 end
