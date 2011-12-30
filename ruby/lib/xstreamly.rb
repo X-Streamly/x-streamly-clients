@@ -15,8 +15,8 @@ module XStreamly
       @http.use_ssl = true
     end
 		
-    def send(channel, eventName, data)
-	    req = Net::HTTP::Post.new(URI.encode('/api/v1.0/'+@appKey+'/channels/'+channel+'/events/'+eventName), initheader = {'Content-Type' =>'application/json'})
+    def send(channel, eventName, data,persisted = false)
+	    req = Net::HTTP::Post.new(URI.encode('/api/v1.0/'+@appKey+'/channels/'+channel+'/events/'+eventName+'?persisted='+persisted.to_s), initheader = {'Content-Type' =>'application/json'})
 	    req.basic_auth @email, @password
 
 	    req.body = data
