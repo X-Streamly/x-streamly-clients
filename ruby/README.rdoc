@@ -60,5 +60,21 @@ To delete a callback you have to reference the key from the getCallbacks call
 and call removeCallback
 
   client.removeCallback(1)
-	
+  
+=== Managing Security tokens
+Security tokens are the GUIDS that tell the system what permisions a client has.  Using
+this api you can View, Create, and Delete security tokens, to View your currently active
+security tokens:
+
+  client.getTokens()
+
+to create a new security token use the createToken method, the signature for the method is:
+
+  createToken(read=true,write=true,channel=nil,event=nil,source=nil,isPrivate=false)
+  
+that will return the GUID of the new token that is created, to then delete a token call:
+
+  client.deleteToken('toekn key here')
+
+
 For any questions or comments please contact support@x-stream.ly

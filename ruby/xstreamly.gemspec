@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'xstreamly'
-  s.version     = '0.6.9'
+  s.version     = '0.6.10'
   s.date        = '2011-11-01'
   s.summary     = "X-Stream.ly Client"
   s.description = "Send X-Stream.ly messages and manage callbacks"

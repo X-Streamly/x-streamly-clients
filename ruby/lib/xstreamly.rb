@@ -180,6 +180,73 @@ module XStreamly
         	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
     	end
     end
+    
+    def getTokens()
+      req = Net::HTTP::Get.new(URI.encode('/api/v1.1/'+@appKey+'/security'), initheader = {'Content-Type' =>'application/json'})
+	    req.basic_auth @email, @password
+	    response = @http.request(req)
+	
+      case response.code.to_i
+        when 200..299
+        	return (JSON(response.body))['sessions']
+        else 
+        	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
+    	end
+    end
+    
+    def createToken(read=true,write=true,channel=nil,event=nil,source=nil,isPrivate=false)
+      req = Net::HTTP::Post.new(URI.encode('/api/v1.1/'+@appKey+'/security'), initheader = {'Content-Type' =>'application/json'})
+	    req.basic_auth @email, @password
+	    data = {}
+	    if(read && write)
+	      # don't set the value then
+      elsif (read)
+        data['action']='read|view'
+      elsif (write)
+        data['action']='write|view'
+      else
+        data['action']='view'
+      end
+      
+      if(!channel.nil?)
+        data['channel']=channel
+      end
+      
+      if(!event.nil?)
+        data['event']=event
+      end
+      
+      if(!source.nil?)
+        data['source']=source
+      end
+      
+      data['private']=isPrivate
+	    
+	    req.body = data.to_json
+	    
+	    puts req.body
+	    
+	    response = @http.request(req)
+	
+      case response.code.to_i
+        when 200..299
+        	return response.body
+        else 
+        	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
+    	end
+    end
+
+    def deleteToken(token)
+      req = Net::HTTP::Delete.new(URI.encode('/api/v1.1/'+@appKey+'/security/'+token), initheader = {'Content-Type' =>'application/json'})
+	    req.basic_auth @email, @password
+	    response = @http.request(req)
+	
+      case response.code.to_i
+        when 200..299
+        	return true
+        else 
+        	raise RuntimeError, "Unknown error (status code #{response.code} ): #{response.body}"
+    	end
+    end
 
   end
-end
