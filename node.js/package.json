@@ -1,8 +1,8 @@
 {
   "name" : "xstreamly-client",
-  "version" : "0.1.0",
+  "version" : "0.1.1",
   "author" : "Brian Willard <bwillard@x-stream.ly>",
-  "description" : "a cleint for x-stream.ly",
+  "description" : "a client for x-stream.ly (http://x-stream.ly)",
   "dependencies" : {
     "socket.io-client": "0.8.7"
   },

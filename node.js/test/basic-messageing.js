@@ -1,8 +1,8 @@
-var xstreamly = require('../lib/xstreamly');
+var XStreamly = require('../lib/xstreamly');
 
 module.exports = {
   setUp: function(callback) {
-    this.client = new xstreamly('tests','402ab188-7408-4d6d-a90f-59ba0a2f177e');
+    this.client = new XStreamly('tests','402ab188-7408-4d6d-a90f-59ba0a2f177e');
     this.messageType= 'messageType';
     this.eventType = 'eventType';
     this.channelName = 'unitTests';
