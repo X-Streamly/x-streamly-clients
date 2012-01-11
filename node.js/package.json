@@ -1,0 +1,15 @@
+{
+  "name" : "xstreamly-client",
+  "version" : "0.1.0",
+  "author" : "Brian Willard <bwillard@x-stream.ly>",
+  "description" : "a cleint for x-stream.ly",
+  "dependencies" : {
+    "socket.io-client": "0.8.7"
+  },
+  "main" : "./lib/xstreamly.js",
+  "repsository" : {
+    "type" : "git",
+    "url" : "git@github.com:X-Streamly/x-streamly-clients.git"
+  },
+  "license":"MIT"
+}
