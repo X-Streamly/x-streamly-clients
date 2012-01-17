@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" 
+               xmlns:s="library://ns.adobe.com/flex/spark"
+               xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="100" minHeight="100"
+               creationComplete="application1_creationCompleteHandler(event)">
+    <s:layout>
+        <s:VerticalLayout />
+    </s:layout>
+    <fx:Declarations>
+        <!-- Place non-visual elements (e.g., services, value objects) here -->
+    </fx:Declarations>
+    <fx:Script>
+        <![CDATA[
+            import com.pnwrain.flashsocket.FlashSocket;
+            import com.pnwrain.flashsocket.events.FlashSocketEvent;
+			import com.adobe.serialization.json.JSON;
+			
+
+            import mx.controls.Alert;
+            import mx.events.FlexEvent;
+			
+			import ly.xstream.XStreamlyClient;
+			import ly.xstream.Channel;
+	
+			protected var client:XStreamlyClient;
+			protected var channel:Channel;
+			
+            protected function application1_creationCompleteHandler(event:FlexEvent):void
+            {
+				trace("starting");
+				client = new XStreamlyClient('10bc1643-c9f5-4210-9814-cae3203af316', 'dd642fa8-7575-4a27-977e-0e0cb1e9a8ef');
+				channel = client.subscribe("myChannel", { includeMyMessages:true } );
+				channel.bindAll(onMessage);
+				client.onActive(onConnect);
+            }
+
+            protected function onConnect():void {
+				trace("connected");
+            }
+
+            protected function onError(event:FlashSocketEvent):void {
+                trace("something went wrong");
+            }
+
+
+            protected function onMessage(eventType:String,data:Object):void{
+                trace('we got event: ' + eventType  +' data: '+JSON.encode(data));
+                
+            }
+			
+			protected function sendMessage():void {
+				channel.trigger("myEvent",{name:"Brian",data:"Frank"},false);
+			}
+
+        ]]>
+    </fx:Script>
+	<mx:Button id="button1" label="Send Message" width="100" click="sendMessage()" />
+</s:Application>
