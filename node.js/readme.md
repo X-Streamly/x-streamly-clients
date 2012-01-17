@@ -1,7 +1,7 @@
 X-Stream.ly Client
 ==================
 
-This is a node.js client library for intercting with [X-Stream.ly](http://x-stream.ly)
+This is a node.js client library for interacting with [X-Stream.ly](http://x-stream.ly)
 
 
 #### To include
