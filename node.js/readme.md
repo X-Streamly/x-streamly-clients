@@ -32,7 +32,7 @@ To listen for messages of a specific type:
       //do fun stuff
     });
   
-To listen for all messages of a specific type:
+To listen for all messages on a channel:
 
     channel.bind_all(function(eventName,data){
       //do fun stuff
@@ -41,6 +41,10 @@ To listen for all messages of a specific type:
 To Send a message:
 
    channel.trigger('message type',{name:'Brian'});
+   
+To Send a persisted message:
+
+   channel.trigger('message type',{name:'Brian'},true);
    
    
 For more detailed instructions check out out [documentation](http://x-stream.ly/documentation.html)

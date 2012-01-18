@@ -25,7 +25,7 @@ next you need to create your client:
   
 To subscribe to a channel:
 
-   var channel:Channel = client.subscribe("myChannel", { includeMyMessages:true } );
+    var channel:Channel = client.subscribe("myChannel", { includeMyMessages:true } );
 
 To listen for messages of a specific type:
 
@@ -33,7 +33,7 @@ To listen for messages of a specific type:
       //do fun stuff
     });
   
-To listen for all messages of a specific type:
+To listen for all messages on a channel regardless of type:
 
     channel.bindAll(function(eventName:String,data:Object):void{
       //do fun stuff
@@ -42,6 +42,10 @@ To listen for all messages of a specific type:
 To Send a message:
 
    channel.trigger('message type',{name:'Brian'},false);
+   
+To Send a persisted message:
+
+   channel.trigger('message type',{name:'Brian'},true);
    
    
 For more detailed instructions check out [documentation](http://x-stream.ly/documentation.html)
