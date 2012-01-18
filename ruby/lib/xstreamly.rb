@@ -30,7 +30,7 @@ module XStreamly
           end
     end
         
-		def setCallback(channel,endPoint,secret,eventName)
+    def setCallback(channel,endPoint,secret,eventName)
       req = Net::HTTP::Post.new(URI.encode('/api/v1.1/'+@appKey+'/feeds/out/custom'), initheader = {'Content-Type' =>'application/json'})
 	    req.basic_auth @email, @password
 
