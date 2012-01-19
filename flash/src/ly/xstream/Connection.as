@@ -26,8 +26,7 @@ package ly.xstream
 			var me:Connection = this;
 			
 			try {
-				//this.socket = new FlashSocket("https://api.cerrio.com:"+port);
-				this.socket = new FlashSocket("localhost:3001");
+				this.socket = new FlashSocket("https://api.cerrio.com:"+this.port);
 				this.setStatus("connecting");
 
 			}
