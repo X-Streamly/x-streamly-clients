@@ -196,7 +196,7 @@ package ly.xstream
 				this.timer = undefined;
 			}
 			
-			this.cerrio.sendDelete(this.uri,this..key);
+			this.cerrio.sendDelete(this.uri,this.key);
 			
 			if(this.stream){
 				this.stream.close();
