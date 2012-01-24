@@ -9,9 +9,7 @@ This is a Java client library for interacting with [X-Stream.ly](http://x-stream
 Add the xstreamly.jar to you project.
 
 
-#### To use
-
-The API for this library is exactly the same as for the browser based JS API
+#### To use the RESTfull API
 
 first off you need to import the types
 
@@ -44,5 +42,108 @@ To delete a security token:
 
    client.deleteToken(token)
    
+
+#### To use the streaming API
+
+first off you need to import the types
+
+    import ly.xstream.streaming.*;
+ 
+ next you need to create your client:
+ 
+    StreamingClient streamingClient = new StreamingClient("app key","security token");
+    
+    
+To subscribe to a channel you need to create a new ChannelOptions and pass it othe the subscribe function
+    
+    ChannelOptions options = new ChannelOptions();
+    options.includeMyMessages = true; //call my callback even on my messages
+    options.includePersistedMessags = false; // don't load persisted messages
+    Channel channel = streamingClient.subscribe("myChannel", options);
+    
+To listen for messages from on a channel:
+
+    channel.bindAll(new IXstreamlyMessageHandler() {
+      @Override
+      public void handleMessage(String eventName, String messageData, Member member, String key) {
+        System.out.println("Got message "+eventName+" data: "+messageData+ " from "+member.id);
+      }
+    });
+    
+To listen for a specific event on a channel:
+
+    channel.bind("myEvent",new IXstreamlyMessageHandler()
+      @Override
+      public void handleMessage(String eventName, String messageData, Member member, String key) {
+        System.out.println("Got message "+eventName+" data: "+messageData+ " from "+member.id);
+      }
+    });
    
-For more detailed instructions check out [documentation](http://x-stream.ly/documentation.html)
+To recieve notifications when users enter or leave a channel:
+
+    channel.bindToChannelEvents(new IXstreamlyChannelEventsHandler() {
+      @Override
+      public void membmerModified(Member member) {
+        System.out.println("Member modified");
+      }
+      @Override
+      public void memberRemoved(Member member) {
+        System.out.println("Member removed");
+      }
+      @Override
+      public void memberAdded(Member member) {
+        System.out.println("Member added");
+      }
+      @Override
+      public void loaded(Members members) {
+       System.out.println("Members loaded:" +members.getCount());
+      }
+    });
+    
+To send a message just pass the object to send into the trigger call:
+
+    SimpleData data = new SimpleData();
+    data.value1 = "frankasdfasdfasdf";
+    data.value2 = "joe";
+    Boolean sendAsPersistedMessage = false;
+    channel.trigger("myEvent", data, sendAsPersistedMessage);
+    
+To be notified when anyone enters or leave any channel call listActiveChannels:
+
+    streamingClient.listActiveChannels(new IActiveChannelCallback() {
+      @Override
+      public void channelChanged(ChannelData channel) {
+        System.out.println("Got channel data "+channel.Channel+" max: "+channel.MaxConcurrentConnections+" current: "+channel.CurrentConcurrentConnections);	
+      }
+    });
+    
+To just be notifed when a new channel is created call listChannels:
+
+    streamingClient.listChannels(new IChannelCallback() {
+      @Override
+      public void channelFound(String channel) {
+        System.out.println("new channel found: "+channel);
+      }
+    });
+    
+To log internal state and be notified of an errors that happen register a logger:
+
+    streamingClient.addLogger(new ILogger() {
+      @Override
+      public void log(String s) {
+       System.out.println(s);
+      }
+      @Override
+      public void handleError(String message, Exception e) {
+        System.out.println(message+ " "+e.toString());
+      }
+    });
+			
+##### Notes
+
+   - The Java Streaming API comunicates over HTTP and not HTTPS like all our other APIs.  This is beucase I haven't ben able to get the
+     SSLEngine working with NIO to comunicate via HTTPS.  This is on the TODO list, if this is a make or break feature for you please
+     let us know (support@x-stream.ly) and we will move it higher on the list.
+
+
+For more detailed instructions check out our [documentation](http://x-stream.ly/documentation.html)

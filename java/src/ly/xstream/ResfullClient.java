@@ -240,9 +240,7 @@ public class ResfullClient {
 		HttpResponse response = httpClient.execute(httpHost, get);
 		
 		String json = validateResponse(response);
-		
-		System.out.println(json);
-		
+			
 		GsonBuilder builder = new GsonBuilder();
 		builder.registerTypeAdapter(UsageDataPoint.class, new UsageDataPointDeserializer());
 		

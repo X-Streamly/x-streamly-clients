@@ -30,8 +30,7 @@ public class UsageDataPointDeserializer implements JsonDeserializer<UsageDataPoi
 			s=s.trim();
 			value.time =df.parse(s);
 		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new JsonParseException("Couldn't parse: "+element.toString());
 		}
 		
 		value.amount =Integer.parseInt(array.get(1).toString());
