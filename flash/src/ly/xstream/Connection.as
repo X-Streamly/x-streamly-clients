@@ -62,10 +62,10 @@ package ly.xstream
 			this.socket.addEventListener('cerrio:session-started', function(data:FlashSocketEvent):void {
 				var item:Object = data.data[0];
 				XStreamlyClient.log('got security call back: '+item.error+' valid: '+item.valid);
-				if(item.valid && this.state!=='connected'){
+				if(item.valid && me.state!=='connected'){
 					me.setStatus('connected');
 				}
-				else if (!item.valid && this.state ==='awaiting-security-clearance'){
+				else if (!item.valid && me.state ==='awaiting-security-clearance'){
 					me.setStatus('security-check-failed');
 				}
 			});

@@ -44,11 +44,10 @@ function Connection(port) {
     
     var sendSecurityToken = function (token){
       //this is a hack to try to prevent Nurph from spaming our server
-      if(i<5){
+      if(i<25){
         i++;
     	  env.log('sending security token: '+token);
     	  me.socket.emit('cerrio:session',token);
-    	  me.socket.emit('cerrio:session:test',{i:i,date:new Date().getTime()});
     	}
     }
     
@@ -111,7 +110,7 @@ function Connection(port) {
     
     this.socket.on('cerrio:session-started',function(item){
     	env.log('got security call back: '+item.error+' valid: '+item.valid);
-    	if(item.valid && this.state!=='connected'){
+    	if(item.valid && me.state!=='connected'){
     		me.setStatus('connected');
     	}
     	else if (!item.valid && me.state ==='awaiting-security-clearance'){
