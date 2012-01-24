@@ -54,7 +54,7 @@ First off you need to import the types
     StreamingClient streamingClient = new StreamingClient("app key","security token");
     
     
-To subscribe to a channel you need to create a new ChannelOptions and pass it othe the subscribe function
+To subscribe to a channel you need to create a new ChannelOptions and pass it to the the subscribe function
     
     ChannelOptions options = new ChannelOptions();
     options.includeMyMessages = true; //call my callback even on my messages
@@ -79,7 +79,7 @@ To listen for a specific event on a channel:
       }
     });
    
-To recieve notifications when users enter or leave a channel:
+To receive notifications when users enter or leave a channel:
 
     channel.bindToChannelEvents(new IXstreamlyChannelEventsHandler() {
       @Override
@@ -126,7 +126,7 @@ To just be notifed when a new channel is created call listChannels:
       }
     });
     
-To log internal state and be notified of an errors that happen register a logger:
+To log internal state and be notified of any errors that happen register a logger:
 
     streamingClient.addLogger(new ILogger() {
       @Override
@@ -141,14 +141,14 @@ To log internal state and be notified of an errors that happen register a logger
 			
 ##### Notes
 
-   - The Java Streaming API comunicates over HTTP and not HTTPS like all our other APIs.  This is beucase I haven't ben able to get the
-     SSLEngine working with NIO to comunicate via HTTPS.  This is on the TODO list, if this is a make or break feature for you please
+   - The Java Streaming API communicates over HTTP and not HTTPS like all our other APIs.  This is because I haven't ben able to get the
+     SSLEngine working with NIO to communicate via HTTPS.  This is on the TODO list, if this is a make or break feature for you please
      let us know (support@x-stream.ly) and we will move it higher on the list.
      
 #### Build
 
-This project is dependend on many other projects, I have included the more mainstream projects as libs in the repository but I will
-leave it to the user to checkout the socket.io library, bot to make sure you get the lastest and greatest and to make sure that
+This project is dependent on many other projects, I have included the more mainstream projects as libs in the repository but I will
+leave it to the user to checkout the socket.io library, both to make sure you get the lastest and greatest and to make sure that
 clwillingham gets the credit for his amazing work.
 
    - [java-socket.io.client](https://github.com/clwillingham/java-socket.io.client) by clwillingham
