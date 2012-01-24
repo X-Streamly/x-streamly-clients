@@ -6,12 +6,12 @@ This is a Java client library for interacting with [X-Stream.ly](http://x-stream
 
 #### To include
 
-Add the xstreamly.jar to you project.
+Add all the jars from the dist folder your project.
 
 
 #### To use the RESTfull API
 
-first off you need to import the types
+First off you need to import the types
 
     import ly.xstream.*;
 
@@ -40,12 +40,12 @@ To list all security tokens:
    
 To delete a security token:
 
-   client.deleteToken(token)
+    client.deleteToken(token)
    
 
 #### To use the streaming API
 
-first off you need to import the types
+First off you need to import the types
 
     import ly.xstream.streaming.*;
  
@@ -144,6 +144,14 @@ To log internal state and be notified of an errors that happen register a logger
    - The Java Streaming API comunicates over HTTP and not HTTPS like all our other APIs.  This is beucase I haven't ben able to get the
      SSLEngine working with NIO to comunicate via HTTPS.  This is on the TODO list, if this is a make or break feature for you please
      let us know (support@x-stream.ly) and we will move it higher on the list.
+     
+#### Build
+
+This project is dependend on many other projects, I have included the more mainstream projects as libs in the repository but I will
+leave it to the user to checkout the socket.io library, bot to make sure you get the lastest and greatest and to make sure that
+clwillingham gets the credit for his amazing work.
+
+   - [java-socket.io.client](https://github.com/clwillingham/java-socket.io.client) by clwillingham
 
 
 For more detailed instructions check out our [documentation](http://x-stream.ly/documentation.html)
