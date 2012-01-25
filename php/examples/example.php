@@ -4,7 +4,7 @@
 
 require_once '../src/xstreamly.php';
 
-$xstreamlyClient = new XStreamly\XstreamlyClient('10bc1643-c9f5-4210-9814-cae3203af316','bwillard@x-stream.ly','foobar123');
+$xstreamlyClient = new XStreamly\XstreamlyClient('app key','email','password');
 
 
 //mesage sending
