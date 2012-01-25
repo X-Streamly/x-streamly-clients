@@ -193,11 +193,11 @@ public class ResfullClient {
 		}
 		
 		if(null!=event){
-			data.put("channel", event);
+			data.put("event", event);
 		}
 		
 		if(null!=source){
-			data.put("channel", source);
+			data.put("source", source);
 		}
 		
 		data.put("private", isPrivate.toString());
