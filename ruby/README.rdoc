@@ -74,7 +74,7 @@ to create a new security token use the createToken method, the signature for the
   
 that will return the GUID of the new token that is created, to then delete a token call:
 
-  client.deleteToken('toekn key here')
+  client.deleteToken('token key here')
 
 
 For any questions or comments please contact support@x-stream.ly

@@ -1,0 +1,73 @@
+= PHP Client for http://x-stream.ly
+
+== Description
+
+This provides some basic functionality for interacting with your X-Stream.ly
+account from PHP.  You can send events from your server to the service
+(and hence your clients). And also manage callbacks that allow your server
+to be alerted when certain messages are sent.
+	
+== Usage
+
+To use it first require it
+
+  require_once 'xstreamly.php';
+	
+Then you need to create your client object
+
+  $xstreamlyClient = new XStreamly\XstreamlyClient('app key','email','password');
+	
+=== Sending Messages	
+Then to send messages
+
+  $xstreamlyClient->send('MyChannel','MyEvent',"some data",false);
+	
+=== Managing Callbacks
+callbacks are webhooks that X-Stream.ly can use to notify your server that
+a message has been sent.
+
+To create a callback
+
+  $callBackKey = $xstreamlyClient->setCallback('MyChannel','http://my.endponit','secret','event');
+
+so if you called this with
+  $callBackKey = $xstreamlyClient->setCallback('MyChannel1', 'http://123.234.100.100/callback', 'no one knows this', null);
+	
+every time a message is sent on MyChannel1 the X-Stream.ly service will post
+a message to http://123.234.100.100/callback that has the form '{"Secret":
+"no one knows this","Data":"the message contents here"}' the secret allows
+you to know that this message came from X-Stream.ly and not some third party
+
+To list all the callbacks that are currently active
+
+  $xstreamlyClient->getCallbacks();
+	
+The result will look like [{"end_point":"http://123.234.100.100/callback", "last_push_result":"OK", "number_of_pushes":6, "channel":"Brian", "last_push":"2011-11-01T18:58:13.287Z", "secret":"Frank", "key":1}]
+
+To delete a callback you have to reference the key from the getCallbacks call
+and call removeCallback
+
+  $xstreamlyClient->removeCallback($callBackKey);
+  
+=== Managing Security tokens
+Security tokens are the GUIDS that tell the system what permisions a client has.  Using
+this api you can View, Create, and Delete security tokens, to View your currently active
+security tokens:
+
+  $xstreamlyClient->getTokens();
+
+to create a new security token use the createToken method, the signature for the method is:
+  $securityToken = $xstreamlyClient->createToken(read,write,channel,event,source,isPrivate);
+  
+that will return the GUID of the new token that is created, to then delete a token call:
+
+  $xstreamlyClient->deleteToken($securityToken);
+  
+  
+To get usage data you can use one of te folling functions:
+
+   $xstreamlyClient->getConnectionUsage(); //return a day by day break down of the number of connections that have been made
+   $xstreamlyClient->getMessageUsage(); //returns a day by day break down of the number of messages that have been sent
+   $xstreamlyClient->getActiveChannels(); // returns an array of all the channels currently in use and the number of users they ave
+   
+For any questions or comments please contact support@x-stream.ly
