@@ -1,5 +1,5 @@
 var Cerrio = require('./cerrio');
-var io = require('socket.io-client');
+var io = require('socket.io-client-xstreamly');
 var env = require('../env');
 
 module.exports = Connection;
