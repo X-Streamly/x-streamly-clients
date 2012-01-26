@@ -7,7 +7,7 @@ namespace XStreamlyExamples
     {
         static void Main(string[] args)
         {
-            Client client = new Client("10bc1643-c9f5-4210-9814-cae3203af316","bwillard@x-stream.ly","joebob123");
+            Client client = new Client("app key","e-mail address","password");
 
             client.Send("MyChannel","MyEvent",new {Name="Brian", Age=28});
 
