@@ -61,10 +61,14 @@ namespace XStreamly.Client
             requestStream.Close();
             HttpWebResponse response = (HttpWebResponse)myRequest.GetResponse();
 
-            using(StreamReader sr = new StreamReader(response.GetResponseStream()))
+            if (response.StatusCode != HttpStatusCode.OK || response.StatusCode != HttpStatusCode.Accepted)
             {
-                string responseData = sr.ReadToEnd();
-                Console.WriteLine(responseData);
+                String resposneText = "";
+                using (StreamReader sr = new StreamReader(response.GetResponseStream()))
+                {
+                    resposneText= sr.ReadToEnd();
+                }
+                throw new Exception("Server did not accept your request: " + resposneText);
             }
 
             response.Close();
@@ -79,7 +83,7 @@ namespace XStreamly.Client
         /// a specific channel (and optionally event name) your end point will be notified
         /// </summary>
         /// <param name="callback">The call back definition</param>
-        public void SetCallback(Callback callback)
+        public string SetCallback(Callback callback)
         {
             HttpWebRequest myRequest = GetAuthenticatedRequest(string.Format(s_subscriptionFormatString, m_appKey));
 
@@ -101,6 +105,10 @@ namespace XStreamly.Client
             try
             {
                 response = (HttpWebResponse)myRequest.GetResponse();
+                using (StreamReader sr = new StreamReader(response.GetResponseStream()))
+                {
+                    return sr.ReadToEnd();
+                }
             }
             catch (WebException wex)
             {
@@ -124,10 +132,10 @@ namespace XStreamly.Client
         /// <summary>
         /// Removes an existing callback from X-Stream.ly
         /// </summary>
-        /// <param name="index"></param>
-        public void RemoveCallback(string index)
+        /// <param name="key"></param>
+        public void RemoveCallback(string key)
         {
-            HttpWebRequest myRequest = GetAuthenticatedRequest(string.Format(s_subscriptionFormatString,m_appKey)+"/"+index);
+            HttpWebRequest myRequest = GetAuthenticatedRequest(string.Format(s_subscriptionFormatString,m_appKey)+"/"+key);
 
             myRequest.Method = "DELETE";
             HttpWebResponse response = (HttpWebResponse)myRequest.GetResponse();
