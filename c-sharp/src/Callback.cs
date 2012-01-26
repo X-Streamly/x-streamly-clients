@@ -19,13 +19,11 @@ namespace XStreamly.Client
 
         [DataMember(Name = "key")]
         public string Key { get; set; }
-    }
 
-    [DataContract]
-    public class CallbackWrapper
-    {
-        [DataMember(Name="items")]
-        public Callback[] Items { get; set; }
+        public override string ToString()
+        {
+            return string.Format("Callback: {{Key: {0}, endpoint: {1}}}", Key, Endpoint);
+        }
     }
 }
 

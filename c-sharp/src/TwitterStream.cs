@@ -47,12 +47,5 @@ namespace XStreamly.Client
             set { m_trackParameter = value; }
         }
     }
-
-    [DataContract]
-    public class TwitterStreamWrapper
-    {
-        [DataMember(Name = "items")]
-        public TwitterStream[] Items { get; set; }
-    }
 }
 

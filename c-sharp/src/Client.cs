@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
+using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web;
@@ -19,6 +21,7 @@ namespace XStreamly.Client
         private static readonly DateTime s_epoch = new DateTime(1970, 1, 1);
         private static readonly string s_subscriptionFormatString = "/api/v1.1/{0}/feeds/out/custom";
         private static readonly string s_twitterStreamFormatString = "/api/v1.1/{0}/feeds/in/twitter";
+        private static readonly string s_tokenFormatString = "/api/v1.1/{0}/security";
 
         private readonly string m_appKey;
         private readonly string m_emailAddress;
@@ -46,32 +49,12 @@ namespace XStreamly.Client
         /// <param name="data">The data that will be JSON serialized into the message</param>
         public void Send(string channel,string eventName, object data)
         {
-            HttpWebRequest myRequest = GetAuthenticatedRequest("/api/v1.1/" + m_appKey + "/channels/" + channel + "/events/" + eventName);
+            string url ="/api/v1.1/" + m_appKey + "/channels/" + channel + "/events/" + eventName;
 
             JavaScriptSerializer ser = new JavaScriptSerializer();
             string stringData = ser.Serialize(data);
 
-            byte[] byteData = Encoding.ASCII.GetBytes(stringData);
-            myRequest.Method = "POST";
-
-            myRequest.ContentType = "application/json";
-            myRequest.ContentLength = byteData.Length;
-            Stream requestStream = myRequest.GetRequestStream();
-            requestStream.Write(byteData, 0, byteData.Length);
-            requestStream.Close();
-            HttpWebResponse response = (HttpWebResponse)myRequest.GetResponse();
-
-            if (response.StatusCode != HttpStatusCode.OK || response.StatusCode != HttpStatusCode.Accepted)
-            {
-                String resposneText = "";
-                using (StreamReader sr = new StreamReader(response.GetResponseStream()))
-                {
-                    resposneText= sr.ReadToEnd();
-                }
-                throw new Exception("Server did not accept your request: " + resposneText);
-            }
-
-            response.Close();
+            PostData(url, stringData);
         }
 
         #region Callbacks
@@ -85,48 +68,13 @@ namespace XStreamly.Client
         /// <param name="callback">The call back definition</param>
         public string SetCallback(Callback callback)
         {
-            HttpWebRequest myRequest = GetAuthenticatedRequest(string.Format(s_subscriptionFormatString, m_appKey));
-
             DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(Callback));
-
-
+            
             MemoryStream ms = new MemoryStream();
             ser.WriteObject(ms, callback);
             string stringData = Encoding.Default.GetString(ms.ToArray());
 
-            byte[] byteData = Encoding.ASCII.GetBytes(stringData);
-            myRequest.Method = "POST";
-            myRequest.ContentType = "application/json";
-            myRequest.ContentLength = byteData.Length;
-            Stream requestStream = myRequest.GetRequestStream();
-            requestStream.Write(byteData, 0, byteData.Length);
-            requestStream.Close();
-            HttpWebResponse response=null;
-            try
-            {
-                response = (HttpWebResponse)myRequest.GetResponse();
-                using (StreamReader sr = new StreamReader(response.GetResponseStream()))
-                {
-                    return sr.ReadToEnd();
-                }
-            }
-            catch (WebException wex)
-            {
-                response = (HttpWebResponse)wex.Response;
-                using (TextReader textReader = new StreamReader(response.GetResponseStream()))
-                {
-                    throw new Exception("Problem setting callback: "+textReader.ReadToEnd());
-                }
-
-            }
-            finally
-            {
-                if(null!=response)
-                {
-                    response.Close();
-                }
-            }
-
+            return PostData(string.Format(s_subscriptionFormatString, m_appKey), stringData);
         }
 
         /// <summary>
@@ -135,11 +83,7 @@ namespace XStreamly.Client
         /// <param name="key"></param>
         public void RemoveCallback(string key)
         {
-            HttpWebRequest myRequest = GetAuthenticatedRequest(string.Format(s_subscriptionFormatString,m_appKey)+"/"+key);
-
-            myRequest.Method = "DELETE";
-            HttpWebResponse response = (HttpWebResponse)myRequest.GetResponse();
-            response.Close();
+            Delete(string.Format(s_subscriptionFormatString, m_appKey) + "/" + key);
         }
 
         /// <summary>
@@ -149,22 +93,56 @@ namespace XStreamly.Client
         {
             get
             {
-                HttpWebRequest myRequest = GetAuthenticatedRequest(string.Format(s_subscriptionFormatString, m_appKey));
-
-                myRequest.Method = "GET";
-                HttpWebResponse response = (HttpWebResponse)myRequest.GetResponse();
-                CallbackWrapper callbacks;
-
-                DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(CallbackWrapper));
-
-                callbacks = (CallbackWrapper)ser.ReadObject(response.GetResponseStream());
-                
-                response.Close();
-
-                return callbacks.Items;
+                return Get<Callback>(string.Format(s_subscriptionFormatString, m_appKey));
             }
         }
         #endregion Callbacks
+
+        #region Security Tokens
+        
+        public string CreateToken(bool canRead,bool canWrite, String channel, String eventName, String source, bool isPrivate)
+        {
+            SecurityToken token = new SecurityToken
+                                      {
+                                          Channel = channel,
+                                          Event = eventName,
+                                          Source = source,
+                                      };
+            if(!canRead || !canWrite)
+            {
+                if(canRead)
+                {
+                    token.Action = "read";
+                } 
+                else
+                {
+                    token.Action = "write";
+                }
+            }
+
+            DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(SecurityToken));
+
+            MemoryStream ms = new MemoryStream();
+            ser.WriteObject(ms, token);
+            string stringData = Encoding.Default.GetString(ms.ToArray());
+
+            return PostData(string.Format(s_tokenFormatString, m_appKey), stringData);
+        }
+
+        public void DeleteSecurityToken(string token)
+        {
+            Delete(string.Format(s_tokenFormatString,m_appKey)+"/"+token);
+        }
+
+        public IEnumerable<SecurityToken> SecurityTokens
+        {
+            get
+            {
+                return Get<SecurityToken>(string.Format(s_tokenFormatString, m_appKey));
+            }
+        }
+
+        #endregion Security Tokens
 
         #region Twitter
         public void SetTwitterStream(TwitterStream streamDefinition,TwitterPermissions permissions)
@@ -204,7 +182,7 @@ namespace XStreamly.Client
         /// Setup a new twitter stream.
         /// </summary>
         /// <param name="streamDefinition">The definition of what Twitter data to stream and to where</param>
-        public void SetTwitterStream(TwitterStream streamDefinition)
+        public string SetTwitterStream(TwitterStream streamDefinition)
         {
             if(string.IsNullOrEmpty(streamDefinition.RequestData))
             {
@@ -216,44 +194,13 @@ namespace XStreamly.Client
                 throw new ArgumentNullException("streamDefinition.Channel");
             }
 
-            HttpWebRequest myRequest = GetAuthenticatedRequest(string.Format(s_twitterStreamFormatString, m_appKey));
-
             DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(TwitterStream));
-
 
             MemoryStream ms = new MemoryStream();
             ser.WriteObject(ms, streamDefinition);
             string stringData = Encoding.Default.GetString(ms.ToArray());
 
-            byte[] byteData = Encoding.ASCII.GetBytes(stringData);
-            myRequest.Method = "POST";
-            myRequest.ContentType = "application/json";
-            myRequest.ContentLength = byteData.Length;
-            Stream requestStream = myRequest.GetRequestStream();
-            requestStream.Write(byteData, 0, byteData.Length);
-            requestStream.Close();
-            HttpWebResponse response = null;
-            try
-            {
-                response = (HttpWebResponse)myRequest.GetResponse();
-            }
-            catch (WebException wex)
-            {
-                response = (HttpWebResponse)wex.Response;
-                using (TextReader textReader = new StreamReader(response.GetResponseStream()))
-                {
-                    throw new Exception("Problem setting twitter stream: " + textReader.ReadToEnd());
-                }
-
-            }
-            finally
-            {
-                if (null != response)
-                {
-                    response.Close();
-                }
-            }
-
+            return PostData(string.Format(s_twitterStreamFormatString, m_appKey), stringData);
         }
 
         /// <summary>
@@ -262,11 +209,7 @@ namespace XStreamly.Client
         /// <param name="index">The key of the twitter stream</param>
         public void RemoveTwitterStream(int index)
         {
-            HttpWebRequest myRequest = GetAuthenticatedRequest(string.Format(s_twitterStreamFormatString, m_appKey)+"/" + index);
-
-            myRequest.Method = "DELETE";
-            HttpWebResponse response = (HttpWebResponse)myRequest.GetResponse();
-            response.Close();
+            Delete(string.Format(s_twitterStreamFormatString, m_appKey) + "/" + index);
         }
 
         /// <summary>
@@ -276,37 +219,100 @@ namespace XStreamly.Client
         {
             get
             {
-                HttpWebRequest myRequest = GetAuthenticatedRequest(string.Format(s_twitterStreamFormatString, m_appKey));
-
-                myRequest.Method = "GET";
-                try
-                {
-                    HttpWebResponse response = (HttpWebResponse)myRequest.GetResponse();
-                    TwitterStreamWrapper callbacks;
-
-                    DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(TwitterStreamWrapper));
-
-
-
-                    callbacks = (TwitterStreamWrapper)ser.ReadObject(response.GetResponseStream());
-
-                    response.Close();
-
-                    return callbacks.Items;
-                }
-                catch (WebException wex)
-                {
-                    string errorMessage ="";
-                    using(StreamReader sr = new StreamReader(wex.Response.GetResponseStream()))
-                    {
-                        errorMessage = sr.ReadToEnd();
-                    }
-                    throw new WebException(errorMessage,wex);
-                }
-
+                return Get<TwitterStream>(string.Format(s_twitterStreamFormatString, m_appKey));
             }
         }
         #endregion Twitter
+
+        #region GenricMethods
+
+        private string PostData(string url, string data)
+        {
+            HttpWebRequest myRequest = GetAuthenticatedRequest(url);
+
+            byte[] byteData = Encoding.ASCII.GetBytes(data);
+            myRequest.Method = "POST";
+            myRequest.ContentType = "application/json";
+            myRequest.ContentLength = byteData.Length;
+            Stream requestStream = myRequest.GetRequestStream();
+            requestStream.Write(byteData, 0, byteData.Length);
+            requestStream.Close();
+
+            return ExecuteRequest(myRequest);
+        }
+
+        private void Delete(string url)
+        {
+            HttpWebRequest myRequest = GetAuthenticatedRequest(url);
+
+            myRequest.Method = "DELETE";
+            ExecuteRequest(myRequest);
+        }
+
+        private IEnumerable<T> Get<T>(string url)
+        {
+            HttpWebRequest myRequest = GetAuthenticatedRequest(url);
+
+            myRequest.Method = "GET";
+
+            string data = ExecuteRequest(myRequest);
+
+            DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof (Wrapper<T>));
+
+            byte[] byteArray = Encoding.ASCII.GetBytes(data);
+            using (MemoryStream stream = new MemoryStream(byteArray))
+            {
+                Wrapper<T> wrapper = (Wrapper<T>)ser.ReadObject(stream);
+                if(null==wrapper.Sessions)
+                {
+                    return new T[0];
+                }
+                return wrapper.Sessions;
+            }
+        }
+
+        private string ExecuteRequest(WebRequest request)
+        {
+            HttpWebResponse response = null;
+            try
+            {
+                response = (HttpWebResponse)request.GetResponse();
+                String resposneText;
+                using (StreamReader sr = new StreamReader(response.GetResponseStream()))
+                {
+                    resposneText = sr.ReadToEnd();
+                }
+
+                if (response.StatusCode == HttpStatusCode.Redirect || response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    throw new AuthenticationException("Authentication to x-stream.ly failed, please check your credentials");
+                }
+
+                if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Accepted)
+                {
+                    throw new Exception("Server did not accept your request: " + resposneText);
+                }
+
+                return resposneText;
+            }
+            catch (WebException wex)
+            {
+                response = (HttpWebResponse)wex.Response;
+                using (TextReader textReader = new StreamReader(response.GetResponseStream()))
+                {
+                    throw new Exception("Problem setting callback: " + textReader.ReadToEnd());
+                }
+            }
+            finally
+            {
+                if (null != response)
+                {
+                    response.Close();
+                }
+            }
+        }      
+
+        #endregion GenricMethods
 
         private HttpWebRequest GetAuthenticatedRequest(string path)
         {
@@ -314,7 +320,18 @@ namespace XStreamly.Client
             string authInfo = m_emailAddress + ":" + m_password;
             authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
             myRequest.Headers["Authorization"] = "Basic " + authInfo;
+            myRequest.AllowAutoRedirect = false;
             return myRequest;
+        }
+
+        [DataContract]
+        private class Wrapper<T>
+        {
+            [DataMember(Name = "items")]
+            public T[] Items { get; set;}
+
+            [DataMember(Name = "sessions")]
+            public T[] Sessions { get; set; }
         }
     }
 }

@@ -1,0 +1,89 @@
+= C# Client for http://x-stream.ly
+
+== Description
+
+This provides some basic functionality for interacting with your X-Stream.ly
+account from C#.  You can send events from your server to the service
+(and hence your clients). And also manage callbacks that allow your server
+to be alerted when certain messages are sent.
+
+== Installation
+
+Grab the dll from the distribution folder (https://github.com/X-Streamly/x-streamly-clients/blob/master/c-sharp/distribution/XStreamly.Client.dll)
+	
+== Usage
+
+To use it first add the using statement:
+
+   using XStreamly.Client;
+	
+Then you need to create your client object
+
+   Client client = new Client("app key","email","password");
+	
+=== Sending Messages	
+Then to send messages
+
+   client.Send("MyChannel","MyEvent",new {Name="Brian", Age=28});
+	
+
+=== Managing Callbacks
+call backs are webhooks that X-Stream.ly can use to notify your server that
+a message has been sent.
+
+To create a callback
+
+   String callbackKey = client.SetCallback(new Callback
+   {
+    Channel ="MyOtherChannel",
+    Endpoint = "http://my.end.point",
+    EventName = "EventName",
+    Secret = "No one should know this"
+   });
+
+so if you called this with
+
+  String callbackKey = client.SetCallback(new Callback   {
+    Channel ="MyChannel1",
+    Endpoint = "http://123.234.100.100/callback",
+    EventName = null,
+    Secret = "No one should know this"
+   });
+	
+every time a message is sent on MyChannel1 the X-Stream.ly service will post
+a message to http://123.234.100.100/callback that has the form '{"Secret":
+"no one knows this","Data":"the message contents here"}' the secret allows
+you to know that this message came from X-Stream.ly and not some third party
+
+To list all the callbacks that are currently active
+
+   foreach(Callback c in client.Callbacks)
+   {
+     //do something fun
+   }
+ 
+To delete a callback you have to reference the key from the getCallbacks call
+and call removeCallback
+
+  client.RemoveCallback(callbackKey);
+  
+=== Managing Security tokens
+Security tokens are the GUIDS that tell the system what permisions a client has.  Using
+this api you can View, Create, and Delete security tokens, to View your currently active
+security tokens:
+
+   foreach (SecurityToken token in client.SecurityTokens)
+   {
+     //do fun stuff here
+   }
+
+to create a new security token use the createToken method:
+
+  String securityToken = client.CreateToken(true, true, "MyChannel", null, null, false);
+  
+that will return the GUID of the new token that is created, to then delete a token call:
+
+  client.DeleteSecurityToken(securityToken);
+
+
+For any questions or comments please contact support@x-stream.ly

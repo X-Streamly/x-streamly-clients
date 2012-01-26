@@ -7,7 +7,7 @@ namespace XStreamlyExamples
     {
         static void Main(string[] args)
         {
-            Client client = new Client("app key","email","password");
+            Client client = new Client("10bc1643-c9f5-4210-9814-cae3203af316","bwillard@x-stream.ly","joebob123");
 
             client.Send("MyChannel","MyEvent",new {Name="Brian", Age=28});
 
@@ -25,6 +25,17 @@ namespace XStreamlyExamples
             }
 
             client.RemoveCallback(callbackKey);
+
+            String securityToken = client.CreateToken(true, true, "MyChannel", null, null, false);
+
+            Console.WriteLine("new security token: "+securityToken);
+
+            foreach (SecurityToken token in client.SecurityTokens)
+            {
+                Console.WriteLine(token);
+            }
+
+            client.DeleteSecurityToken(securityToken);
         }
     }
 }
