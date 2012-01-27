@@ -33,6 +33,12 @@ public class StreamingClient implements ILogger {
 		
 	}
 	
+	/** Subscribes to a channel, once you have a channel you can bind to
+	 * events that happen on the channel and send messages on the channel
+	 * 
+	 * @param channelName		The name of the channel
+	 * @param options			Options that specify the behavcior of the channel
+	 */
 	public Channel subscribe(String channelName,ChannelOptions options){
 		if(!Pattern.matches("^[\\w\\s:-]+$",channelName)){
 			throw new Error(channelName+" isn't a valid name, channel names should only contains letters numbers and -_");
@@ -43,6 +49,10 @@ public class StreamingClient implements ILogger {
 		return channel;
 	}
 	
+	/** Deletes all persisted messages associated with a channel
+	 * 
+	 * @param channelName		The name of the channel
+	 */
 	public void deleteChannel(String channelName) {
 		
 		SubscriptionOptions options = new SubscriptionOptions();
@@ -66,6 +76,10 @@ public class StreamingClient implements ILogger {
 	}
 	
 
+	/** Will stream a list of channels to the callback specified
+	 * 
+	 * @param callback		The IChannelCallback to be called when a channel is created (it will also be called for all existing channels)
+	 */
 	public IClosable listChannels(IChannelCallback callback) {
 		SubscriptionOptions options = new SubscriptionOptions();
 		options.uri=StreamingClient.MessageUrl;
@@ -79,6 +93,10 @@ public class StreamingClient implements ILogger {
 		return streamer;
 	}
 	
+	/** Will stream events to the callback when ever a client enters of leaves a channel
+	 * 
+	 * @param callback		The IActiveChannelCallback to be called when a user enters or leaves a channel
+	 */
 	public IClosable listActiveChannels(IActiveChannelCallback callback) {
 		SubscriptionOptions options = new SubscriptionOptions();
 		options.uri="PicTacToe/XStreamly/StatsPresence";
@@ -93,20 +111,53 @@ public class StreamingClient implements ILogger {
 		return streamer;
 	}
 	
+	/** Will stream events to the callback when ever a client enters of leaves a specific channel
+	 * 
+	 * @param channel		The channel name to watch
+	 * @param callback		The IActiveChannelCallback to be called when a user enters or leaves the specified channel
+	 */
+	public IClosable getChanelActivity(String channel,IActiveChannelCallback callback) {
+		SubscriptionOptions options = new SubscriptionOptions();
+		options.uri="PicTacToe/XStreamly/StatsPresence";
+		options.subscription = "@.AppKey='" + appKey + "' and @.Channel = '"+channel+"'";
+		
+		ActiveChannelStreamer streamer = new ActiveChannelStreamer(callback);
+		
+		options.addAction = streamer;
+		options.modifyAction = streamer;
+		
+		streamer.stream = this.cerrio.subscribe(options);
+		return streamer;
+	}
+	
+	/** Total stops all connections to the X-Stream.ly server
+	 */
 	public void stop() {
 		log("stopping");
 		this.cerrio.stop();
 	}
 	
+	/** Adds extra permissions to the connection
+	 * 
+	 * @param securityToken		The GUID for the security token to add to the connection
+	 */
 	public void addSecurityToken(String securityToken){
 		this.cerrio.applySession(securityToken);
 	}
 	
+	/** Adds a logger that will be notified when any errors happen inside the library
+	 * 
+	 * @param handler		The ILogger to notify
+	 */
 	public void addLogger(ILogger handler){
 		loggers.add(handler);
 	}
 	
-	public void removeErrorHandler(ILogger handler){
+	/** Removes a logger
+	 * 
+	 * @param handler		The ILogger to remove
+	 */
+	public void removeLogger(ILogger handler){
 		loggers.remove(handler);
 	}
 

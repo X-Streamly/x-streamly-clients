@@ -117,6 +117,15 @@ To be notified when anyone enters or leave any channel call listActiveChannels:
       }
     });
     
+To be notified when anyone enters or leave a specific channel call getChanelActivity:
+
+    streamingClient.getChanelActivity(channelName,new IActiveChannelCallback() {
+      @Override
+      public void channelChanged(ChannelData channel) {
+        System.out.println("Got channel data "+channel.Channel+" max: "+channel.MaxConcurrentConnections+" current: "+channel.CurrentConcurrentConnections);	
+      }
+    });
+    
 To just be notifed when a new channel is created call listChannels:
 
     streamingClient.listChannels(new IChannelCallback() {
