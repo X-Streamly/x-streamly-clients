@@ -1,5 +1,6 @@
 package ly.xstream;
 
+import java.net.URI;
 import java.util.HashMap;
 
 import org.apache.commons.codec.binary.Base64;
@@ -68,11 +69,7 @@ public class ResfullClient {
 	 * @param eventName			The name of the event that will be generated
 	 * @param data				an object containing the data you want to be sent
 	 */
-	public void send(String channel, String eventName,Object data,Boolean persisted) throws Exception{
-		HttpPost post = new HttpPost ("/api/v1.1/" + appKey + "/channels/" + channel + "/events/" + eventName);
-		
-		authorizeRequest(post);
-		
+	public void send(String channel, String eventName,Object data,Boolean persisted) throws Exception{		
 		Gson gson = new Gson();
 		String json;
 		
@@ -81,15 +78,8 @@ public class ResfullClient {
 		} else {
 			json = gson.toJson(data);
 		}
-		
-		
-		StringEntity entity = new StringEntity(json, HTTP.UTF_8);
-		entity.setContentType("application/json");
-		post.setEntity(entity);
-			
-		HttpResponse response = httpClient.execute(httpHost, post);
-		
-		validateResponse(response);
+
+		genericPost("/api/v1.1/" + appKey + "/channels/" + channel + "/events/" + eventName,json);
 	}
 	
 	/** Registers a call back so whenever X-Stream.ly receives a message
@@ -103,22 +93,9 @@ public class ResfullClient {
 	 * 
 	 * @return					The key of the callback that was created
 	 */
-	public String setCallback(String channel, String endPoint, String secret, String eventName) throws Exception{
-		HttpPost post = new HttpPost ("/api/v1.1/" + appKey + "/feeds/out/custom");
-		
-		authorizeRequest(post);
-		
+	public String setCallback(String channel, String endPoint, String secret, String eventName) throws Exception{		
 		String json = "{\"channel\":\""+channel+"\", \"endpoint\":\""+endPoint+"\", \"secret\":\""+secret+"\", \"event\": \""+eventName+"\"}";
-		
-		StringEntity entity = new StringEntity(json, HTTP.UTF_8);
-		entity.setContentType("application/json");
-		post.setEntity(entity);
-		
-		HttpResponse response = httpClient.execute(httpHost, post);
-		
-		validateResponse(response);
-		
-		return response.toString();
+		return genericPost("/api/v1.1/" + appKey + "/feeds/out/custom",json);
 	}
 	
 	/** Removes a callback that was set with setCallback
@@ -167,15 +144,11 @@ public class ResfullClient {
 	 * @param channel			The channel the user will be able to interact with, if null they have access to all channels
 	 * @param event				The event the user will be able to interact with, if null they have access to all events
 	 * @param source			The IP address this security token is valid for, if left null it will be valid for all IP addresses
-	 * @param isPrivate			If true the security token can access both private and public channels, if false the security toekn only grants access to public messages
+	 * @param isPrivate			If true the security token can access both private and public channels, if false the security token only grants access to public messages
 	 * 
 	 * @return					The key of the token that was created
 	 */
-	public String createToken(Boolean canRead,Boolean canWrite,String channel, String event, String source, Boolean isPrivate) throws Exception{
-		HttpPost post = new HttpPost ("/api/v1.1/" + appKey + "/security");
-		
-		authorizeRequest(post);
-		
+	public String createToken(Boolean canRead,Boolean canWrite,String channel, String event, String source, Boolean isPrivate) throws Exception{		
 		HashMap<String,String> data = new HashMap<String,String>();
 		
 		if(canRead && canWrite){
@@ -204,14 +177,8 @@ public class ResfullClient {
 		
 		Gson gson = new Gson();
 		String json = gson.toJson(data);
-		
-		StringEntity entity = new StringEntity(json, HTTP.UTF_8);
-		entity.setContentType("application/json");
-		post.setEntity(entity);
-		
-		HttpResponse response = httpClient.execute(httpHost, post);
-		
-		return validateResponse(response);
+				
+		return genericPost("/api/v1.1/" + appKey + "/security",json);
 	}
 	
 	/** Removes a token that was set with createToken
@@ -222,8 +189,22 @@ public class ResfullClient {
 		genericDelete("/api/v1.1/" + appKey + "/security/"+token);
 	}
 	
+	private String genericPost(String url,String data) throws Exception{
+		HttpPost post  = new HttpPost(new URI(XSTREAMLY_PROTOCAL,XSTREAMLY_HOST,url,null));
+		
+		StringEntity entity = new StringEntity(data, HTTP.UTF_8);
+		entity.setContentType("application/json");
+		post.setEntity(entity);
+		
+		authorizeRequest(post);
+		
+		HttpResponse response = httpClient.execute(httpHost, post);
+		
+		return validateResponse(response);
+	}
+	
 	private void genericDelete(String url) throws Exception{
-		HttpDelete delete  = new HttpDelete(url);
+		HttpDelete delete  = new HttpDelete(new URI(XSTREAMLY_PROTOCAL,XSTREAMLY_HOST,url,null));
 		
 		authorizeRequest(delete);
 		
@@ -233,7 +214,7 @@ public class ResfullClient {
 	}
 	
 	private <T> T genericGet(String url,Class<T> cls) throws Exception{
-		HttpGet get  = new HttpGet(url);
+		HttpGet get  = new HttpGet(new URI(XSTREAMLY_PROTOCAL,XSTREAMLY_HOST,url,null));
 		
 		authorizeRequest(get);
 		
@@ -258,6 +239,11 @@ public class ResfullClient {
 		String content = EntityUtils.toString(entity);
 		EntityUtils.consume(entity);
 		int statusCode = response.getStatusLine().getStatusCode();
+		
+		if(statusCode==302){
+			throw new Exception("Authorization failed, please check you appKey, email, and password");
+		}
+		
 		if(statusCode!=202 && statusCode !=200){
 			throw new Exception("Failed to send message "+response.toString());
 		}

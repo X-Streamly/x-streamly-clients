@@ -1,5 +1,6 @@
 package ly.xstream.streaming;
 
+import java.util.Date;
 import java.util.HashSet;
 
 import com.google.gson.ExclusionStrategy;
@@ -14,7 +15,7 @@ class CerrioUpdateWrapper {
 	public CerrioMessage[] updates;
 	
 	public transient HashSet<String> modifiedSet;
-	public transient Gson gson = new Gson();
+	public transient Gson gson = StreamingClient.XStreaemlyGson;
 	
 	public CerrioUpdateWrapper()
 	{
@@ -47,6 +48,8 @@ class CerrioUpdateWrapper {
 					return false;
 				}
 			});
+			
+			builder.registerTypeAdapter(Date.class, new JavascriptDateDeserializer());
 			
 			gson = builder.create();
 		}

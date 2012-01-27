@@ -2,7 +2,6 @@ package ly.xstream.streaming;
 
 import java.util.*;
 
-import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 class PresenceChannel {
@@ -24,8 +23,6 @@ class PresenceChannel {
 	private Stream stream;
 	
 	private Timer timer;
-	
-	private Gson gson = new Gson();
 	
 	private XstreamlyPresenceMessage message;
 	
@@ -66,7 +63,7 @@ class PresenceChannel {
 		options.addAction = new IDataUpdateHandler() {
 			@Override
 			public void handleUpdate(String data) {
-				XstreamlyPresenceMessage message = gson.fromJson(data, XstreamlyPresenceMessage.class);
+				XstreamlyPresenceMessage message = StreamingClient.XStreaemlyGson.fromJson(data, XstreamlyPresenceMessage.class);
 				addAction(message);
 
 			}
@@ -74,14 +71,14 @@ class PresenceChannel {
 		options.modifyAction = new IDataUpdateHandler() {
 			@Override
 			public void handleUpdate(String data) {
-				XstreamlyPresenceMessage message = gson.fromJson(data, XstreamlyPresenceMessage.class);
+				XstreamlyPresenceMessage message = StreamingClient.XStreaemlyGson.fromJson(data, XstreamlyPresenceMessage.class);
 				modifyAction(message);
 			}
 		};
 		options.deleteAction = new IDataUpdateHandler() {
 			@Override
 			public void handleUpdate(String data) {
-				XstreamlyPresenceMessage message = gson.fromJson(data, XstreamlyPresenceMessage.class);
+				XstreamlyPresenceMessage message = StreamingClient.XStreaemlyGson.fromJson(data, XstreamlyPresenceMessage.class);
 				deleteAction(message);
 			}
 		};
@@ -143,7 +140,7 @@ class PresenceChannel {
 		message.Key=key;
 		message.Channel=channelName;
 		message.AppKey=appKey;
-		message.MemberInfo=gson.toJson(memberInfo);
+		message.MemberInfo=StreamingClient.XStreaemlyGson.toJson(memberInfo);
 		message.Verified=false;
 		message.Connected=true;
 		message.Challenge=0;
@@ -164,7 +161,7 @@ class PresenceChannel {
 	
 	private void addAction(XstreamlyPresenceMessage message){
 		if(null!= message.MemberInfo){
-			message.memberInfo = gson.fromJson(message.MemberInfo,  new TypeToken<HashMap<String,String>>() {}.getType());
+			message.memberInfo = StreamingClient.XStreaemlyGson.fromJson(message.MemberInfo,  new TypeToken<HashMap<String,String>>() {}.getType());
 			message.memberId = message.memberInfo.get("memberId");
 		}
 		
@@ -195,7 +192,7 @@ class PresenceChannel {
 		for(Member m: members.members.values()){
 			if(m.containsKey(message.Key)){
 				if(null!=message.MemberInfo){
-					m.memberInfo = gson.fromJson(message.MemberInfo,  new TypeToken<HashMap<String,String>>() {}.getType());
+					m.memberInfo = StreamingClient.XStreaemlyGson.fromJson(message.MemberInfo,  new TypeToken<HashMap<String,String>>() {}.getType());
 					for(IXstreamlyChannelEventsHandler handler: channelEventsHandlers){
 						handler.membmerModified(m);
 					}

@@ -96,17 +96,13 @@ class Connection implements MessageCallback, ICerrioMessageHandler{
 	}
 	
 	public void send(String event,Object data,AckCallback callback) throws IOException, JSONException{
-		Gson gson = null;
+		Gson gson = StreamingClient.XStreaemlyGson;
 		
 		if(data instanceof CerrioUpdateWrapper){
 			CerrioUpdateWrapper wrapper = (CerrioUpdateWrapper)data;
 			gson = wrapper.gson;
 		}
-				
-		if(null==gson){
-			gson= new Gson();
-		}
-		
+			
 		String json = gson.toJson(data);
 		JSONObject obj = new JSONObject(json);
 		if(null==callback){
@@ -114,7 +110,6 @@ class Connection implements MessageCallback, ICerrioMessageHandler{
 		} else {
 			socket.emit(event, obj,callback);
 		}
-		
 	}
 	
 	private void sendSecurityToken(String token){
