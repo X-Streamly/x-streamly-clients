@@ -26,7 +26,6 @@ public class ResfullClient {
 	private static final String XSTREAMLY_HOST = "secure.x-stream.ly";
 	private static final int XSTREAMLY_PORT = 443;
 	private static final String XSTREAMLY_PROTOCAL = "https";
-
 	
 	private String appKey;
 	private DefaultHttpClient httpClient;
@@ -109,31 +108,65 @@ public class ResfullClient {
 	/** Lists all active callbacks
 	 */
 	public Callbacks getCallbacks() throws Exception{
-		return genericGet("/api/v1.1/" + appKey + "/feeds/out/custom/",Callbacks.class);
+		return genericGet("/api/v1.1/" + appKey + "/feeds/out/custom/",null,Callbacks.class);
 	}
 	
 	/** Lists all channels that currently have a connected client
 	 */
 	public Channels activeChannels() throws Exception{
-		return genericGet("/api/v1.1/" + appKey + "/activeChannels/",Channels.class);
+		return genericGet("/api/v1.1/" + appKey + "/activeChannels/",null,Channels.class);
 	}
 	
 	/** Returns an array of historical connection data
 	 */
 	public UsageData usageConnections() throws Exception{
-		return genericGet("/usage/connections/",UsageData.class);
+		return genericGet("/usage/connections/",null,UsageData.class);
 	}
 	
 	/** Returns an array of historical message usage data
 	 */
 	public UsageData usageMessages() throws Exception{
-		return genericGet("/usage/messages/",UsageData.class);
+		return genericGet("/usage/messages/",null,UsageData.class);
 	}
 	
 	/** Returns all the currently valid security tokens your account has
 	 */
 	public Tokens getTokens() throws Exception{
-		return genericGet("/api/v1.1/" + appKey + "/security/",Tokens.class);
+		return getTokens(null,null,null);
+	}
+	
+	/** Returns all the currently valid security tokens your account has
+	 * that match the specified parameters
+	 * @param channel			If specified, only tokens that are valid just for this channel will be returned
+	 * @param eventName			If specified, only tokens that are valid just for this event name will be returned
+	 * @param source			If specified, only tokens that are valid just for this source will be returned
+	 */
+	public Tokens getTokens(String channel,String eventName,String source) throws Exception{
+		String params = "";
+		
+		if(null!=channel)
+		{
+			params+="channel="+channel;
+		}
+		
+		if(null!=eventName)
+		{
+			params+="&eventName="+eventName;
+		}
+		
+		if(null!=source)
+		{
+			params+="&source="+source;
+		}
+		
+		Tokens tokens =  genericGet("/api/v1.1/" + appKey + "/security",params,Tokens.class);
+		
+		for(Token t :tokens.sessions){
+			t.channel = t.itemsFilter.Channel;
+			t.event = t.itemsFilter.EventName;
+		}
+		
+		return tokens;
 	}
 	
 	/** Creates a new security token that can be given to client to allow them to
@@ -213,8 +246,8 @@ public class ResfullClient {
 		validateResponse(response);
 	}
 	
-	private <T> T genericGet(String url,Class<T> cls) throws Exception{
-		HttpGet get  = new HttpGet(new URI(XSTREAMLY_PROTOCAL,XSTREAMLY_HOST,url,null));
+	private <T> T genericGet(String url,String queryParams,Class<T> cls) throws Exception{
+		HttpGet get  = new HttpGet(new URI(XSTREAMLY_PROTOCAL,XSTREAMLY_HOST,url,queryParams,null));
 		
 		authorizeRequest(get);
 		
@@ -227,7 +260,15 @@ public class ResfullClient {
 		
 		Gson gson = builder.create();
 		
-		return gson.fromJson(json,cls);
+		T result = null;
+		
+		try {
+			result= gson.fromJson(json,cls);
+		} catch(Exception e){
+			throw new Exception("problem parsing "+json,e);
+		}
+		
+		return result;
 	}
 	
 	private void authorizeRequest(AbstractHttpMessage request){

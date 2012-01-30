@@ -37,6 +37,13 @@ To list all security tokens:
     for(Token t:client.getTokens().sessions){
         System.out.println(t.key);
     }
+    
+To list all security tokens that satisfy a particular condition:
+
+    for(Token t:client.getTokens('channel','event','source').sessions){
+        System.out.println(t.key);
+    }
+Any property left null will match all values.
    
 To delete a security token:
 

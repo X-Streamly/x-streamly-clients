@@ -6,4 +6,10 @@ public class Token {
 	public String email;
 	public String key;
 	public String action;
+	
+	ItemsFilter itemsFilter;
+	
+	public String channel;
+	public String event;
+	public String source;
 }
