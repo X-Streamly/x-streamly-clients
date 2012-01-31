@@ -14,7 +14,7 @@ class XStreamlyClient{
   private $appKey;
   private $email;
   private $password;
-  private $baseUrl = 'http://127.0.0.1:3000';//'https://secure.x-stream.ly'; 
+  private $baseUrl = 'https://secure.x-stream.ly'; 
 
   public function __construct($appKey,$email,$password){
     $this->appKey = $appKey;
