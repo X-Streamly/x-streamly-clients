@@ -109,5 +109,19 @@ that will return the GUID of the new token that is created, to then delete a tok
 
   client.DeleteSecurityToken(securityToken);
 
+=== Getting usage data
+If you want to track the usage data for either the number of message or number of
+concurent connections use the following:
+
+  foreach(UsageDataPoint point in client.GetConnectionUsage())
+  {
+    Console.WriteLine("Connection: "+point);
+  }
+
+  foreach (UsageDataPoint point in client.GetMessageUsage())
+  {
+    Console.WriteLine("Message: " + point);
+  }
+
 
 For any questions or comments please contact support@x-stream.ly

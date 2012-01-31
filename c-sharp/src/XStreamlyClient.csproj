@@ -57,11 +57,13 @@
   <ItemGroup>
     <Compile Include="Callback.cs" />
     <Compile Include="Client.cs" />
+    <Compile Include="UsageData.cs" />
     <Compile Include="Message.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SecurityToken.cs" />
     <Compile Include="TwitterPermissions.cs" />
     <Compile Include="TwitterStream.cs" />
+    <Compile Include="UsageDataPoint.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

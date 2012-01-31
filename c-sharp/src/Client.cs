@@ -17,12 +17,13 @@ namespace XStreamly.Client
     /// </summary>
     public class Client
     {
-        //private static readonly string s_xstreamlyHost = "https://secure.x-stream.ly";
-        private static readonly string s_xstreamlyHost = "http://127.0.0.1:3000";
+        private static readonly string s_xstreamlyHost = "https://secure.x-stream.ly";
         private static readonly DateTime s_epoch = new DateTime(1970, 1, 1);
         private static readonly string s_subscriptionFormatString = "/api/v1.1/{0}/feeds/out/custom";
         private static readonly string s_twitterStreamFormatString = "/api/v1.1/{0}/feeds/in/twitter";
         private static readonly string s_tokenFormatString = "/api/v1.1/{0}/security";
+        private static readonly string s_messageUsageFormatString = "/usage/messages";
+        private static readonly string s_connectionUsaageFormatString = "/usage/connections";
 
         private readonly string m_appKey;
         private readonly string m_emailAddress;
@@ -111,7 +112,7 @@ namespace XStreamly.Client
         {
             get
             {
-                return Get<Callback>(string.Format(s_subscriptionFormatString, m_appKey));
+                return GetWithWrapper<Callback>(string.Format(s_subscriptionFormatString, m_appKey));
             }
         }
         #endregion Callbacks
@@ -199,7 +200,7 @@ namespace XStreamly.Client
                 queryParams = "?" + queryParams;
             }
 
-            return Get<SecurityToken>(string.Format(s_tokenFormatString, m_appKey) + queryParams);
+            return GetWithWrapper<SecurityToken>(string.Format(s_tokenFormatString, m_appKey) + queryParams);
         }
 
         #endregion Security Tokens
@@ -279,10 +280,30 @@ namespace XStreamly.Client
         {
             get
             {
-                return Get<TwitterStream>(string.Format(s_twitterStreamFormatString, m_appKey));
+                return GetWithWrapper<TwitterStream>(string.Format(s_twitterStreamFormatString, m_appKey));
             }
         }
         #endregion Twitter
+
+        #region Usage
+
+        /// <summary>
+        /// Gets the historical message usage by day
+        /// </summary>
+        public IEnumerable<UsageDataPoint> GetMessageUsage()
+        {
+            return Get<UsageData>(string.Format(s_messageUsageFormatString, m_appKey)).Data;
+        }
+
+        /// <summary>
+        /// Gets the historical message usage by day
+        /// </summary>
+        public IEnumerable<UsageDataPoint> GetConnectionUsage()
+        {
+            return Get<UsageData>(string.Format(s_connectionUsaageFormatString, m_appKey)).Data;
+        }
+
+        #endregion Usage
 
         #region GenricMethods
 
@@ -309,7 +330,24 @@ namespace XStreamly.Client
             ExecuteRequest(myRequest);
         }
 
-        private IEnumerable<T> Get<T>(string url)
+        private IEnumerable<T> GetWithWrapper<T>(string url)
+        {
+            Wrapper<T> wrapper = Get<Wrapper<T>>(url);
+            if (null != wrapper.Sessions)
+            {
+                return wrapper.Sessions;
+            }
+            else if (null != wrapper.Items)
+            {
+                return wrapper.Items;
+            }
+            else
+            {
+                return new T[0];
+            }
+        }
+
+        private T Get<T>(string url)
         {
             HttpWebRequest myRequest = GetAuthenticatedRequest(url);
 
@@ -317,17 +355,12 @@ namespace XStreamly.Client
 
             string data = ExecuteRequest(myRequest);
 
-            DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(Wrapper<T>));
+            DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(T));
 
             byte[] byteArray = Encoding.ASCII.GetBytes(data);
             using (MemoryStream stream = new MemoryStream(byteArray))
             {
-                Wrapper<T> wrapper = (Wrapper<T>)ser.ReadObject(stream);
-                if (null == wrapper.Sessions)
-                {
-                    return new T[0];
-                }
-                return wrapper.Sessions;
+                return(T)ser.ReadObject(stream);
             }
         }
 
