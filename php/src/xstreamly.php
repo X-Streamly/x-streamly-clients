@@ -51,8 +51,26 @@ class XStreamlyClient{
     return $this->genericGet('/usage/messages');
   }
   
-  public function getTokens(){
-    return $this->genericGet('/api/v1.1/' . $this->appKey . '/security/');
+  public function getTokens($channel=null, $eventName=null, $source=null){
+    $params = '';
+    
+    if(!is_null($channel)){
+      $params .='channel='.$channel;
+    }
+    
+    if(!is_null($eventName)){
+      $params .='event='.$eventName;
+    }
+    
+    if(!is_null($source)){
+      $params .='source='.$source;
+    }
+    
+    if(strlen($params)){
+      $params = "?" . $params;
+    }
+  
+    return $this->genericGet('/api/v1.1/' . $this->appKey . '/security/' . $params);
   }
   
   public function createToken($canRead = true, $canWrite = true, $channel = null, $event = null, $source = null, $isPrivate = false){
