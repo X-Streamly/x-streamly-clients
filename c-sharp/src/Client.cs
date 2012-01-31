@@ -17,7 +17,8 @@ namespace XStreamly.Client
     /// </summary>
     public class Client
     {
-        private static readonly string s_xstreamlyHost = "https://secure.x-stream.ly";
+        //private static readonly string s_xstreamlyHost = "https://secure.x-stream.ly";
+        private static readonly string s_xstreamlyHost = "http://127.0.0.1:3000";
         private static readonly DateTime s_epoch = new DateTime(1970, 1, 1);
         private static readonly string s_subscriptionFormatString = "/api/v1.1/{0}/feeds/out/custom";
         private static readonly string s_twitterStreamFormatString = "/api/v1.1/{0}/feeds/in/twitter";
@@ -33,7 +34,7 @@ namespace XStreamly.Client
         /// <param name="appKey">Your application key</param>
         /// <param name="emailAddress">The e-mail address you use to sign into X-Stream.ly with</param>
         /// <param name="password">The password you use to sign into X-Stream.ly with</param>
-        public Client(string appKey,string emailAddress,string password)
+        public Client(string appKey, string emailAddress, string password)
         {
             m_appKey = appKey;
             m_emailAddress = emailAddress;
@@ -47,13 +48,30 @@ namespace XStreamly.Client
         /// <param name="channel">The channel name to send the message to</param>
         /// <param name="eventName">The event name the message will be sent with</param>
         /// <param name="data">The data that will be JSON serialized into the message</param>
-        public void Send(string channel,string eventName, object data)
+        public void Send(string channel, string eventName, object data)
         {
-            string url ="/api/v1.1/" + m_appKey + "/channels/" + channel + "/events/" + eventName;
+            string url = "/api/v1.1/" + m_appKey + "/channels/" + channel + "/events/" + eventName;
 
             JavaScriptSerializer ser = new JavaScriptSerializer();
             string stringData = ser.Serialize(data);
 
+            PostData(url, stringData);
+        }
+
+        /// <summary>
+        /// Sends a batch of messages
+        /// </summary>
+        /// <param name="messages">One or messages to be sent</param>
+        public void SendBatch(IEnumerable<Message> messages)
+        {
+            string url = "/api/v1.1/" + m_appKey + "/messages/";
+
+            DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(IEnumerable<Message>));
+            MemoryStream ms = new MemoryStream();
+            ser.WriteObject(ms, messages);
+            string stringData = Encoding.Default.GetString(ms.ToArray());
+
+            //Console.WriteLine(stringData);
             PostData(url, stringData);
         }
 
@@ -69,7 +87,7 @@ namespace XStreamly.Client
         public string SetCallback(Callback callback)
         {
             DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(Callback));
-            
+
             MemoryStream ms = new MemoryStream();
             ser.WriteObject(ms, callback);
             string stringData = Encoding.Default.GetString(ms.ToArray());
@@ -99,21 +117,21 @@ namespace XStreamly.Client
         #endregion Callbacks
 
         #region Security Tokens
-        
-        public string CreateToken(bool canRead,bool canWrite, String channel, String eventName, String source, bool isPrivate)
+
+        public string CreateToken(bool canRead, bool canWrite, String channel, String eventName, String source, bool isPrivate)
         {
             SecurityToken token = new SecurityToken
-                                      {
-                                          Channel = channel,
-                                          Event = eventName,
-                                          Source = source,
-                                      };
-            if(!canRead || !canWrite)
             {
-                if(canRead)
+                Channel = channel,
+                Event = eventName,
+                Source = source,
+            };
+            if (!canRead || !canWrite)
+            {
+                if (canRead)
                 {
                     token.Action = "read";
-                } 
+                }
                 else
                 {
                     token.Action = "write";
@@ -131,7 +149,7 @@ namespace XStreamly.Client
 
         public void DeleteSecurityToken(string token)
         {
-            Delete(string.Format(s_tokenFormatString,m_appKey)+"/"+token);
+            Delete(string.Format(s_tokenFormatString, m_appKey) + "/" + token);
         }
 
         public IEnumerable<SecurityToken> SecurityTokens
@@ -142,16 +160,26 @@ namespace XStreamly.Client
             }
         }
 
+        /// <summary>
+        /// Returns all the security tokens that are active for the account
+        /// </summary>
         public IEnumerable<SecurityToken> GetSecurityTokens()
         {
-            return GetSecurityTokens(null,null,null);
+            return GetSecurityTokens(null, null, null);
         }
 
-        public IEnumerable<SecurityToken> GetSecurityTokens(string channel,string eventName,string source)
+        /// <summary>
+        /// Returns all the security tokens that are active for the account that
+        /// match the specified characteristics
+        /// </summary>
+        /// <param name="channel">If specified, function will only return tokens that have this value for their channel</param>
+        /// <param name="eventName">If specified, function will only return tokens that have this value for their eventName</param>
+        /// <param name="source">If specified, function will only return tokens that have this value for their source</param>
+        public IEnumerable<SecurityToken> GetSecurityTokens(string channel, string eventName, string source)
         {
             string queryParams = "";
 
-            if(!string.IsNullOrEmpty(channel))
+            if (!string.IsNullOrEmpty(channel))
             {
                 queryParams = "channel=" + channel;
             }
@@ -166,7 +194,7 @@ namespace XStreamly.Client
                 queryParams = "&source=" + source;
             }
 
-            if(!string.IsNullOrEmpty(queryParams))
+            if (!string.IsNullOrEmpty(queryParams))
             {
                 queryParams = "?" + queryParams;
             }
@@ -177,7 +205,7 @@ namespace XStreamly.Client
         #endregion Security Tokens
 
         #region Twitter
-        public void SetTwitterStream(TwitterStream streamDefinition,TwitterPermissions permissions)
+        public void SetTwitterStream(TwitterStream streamDefinition, TwitterPermissions permissions)
         {
             string nonce = Path.GetRandomFileName();
             string timeStamp = ((int)(DateTime.UtcNow - s_epoch).TotalSeconds).ToString();
@@ -185,11 +213,11 @@ namespace XStreamly.Client
 
             string sigBase = "POST&https%3A%2F%2Fstream.twitter.com%2F1%2Fstatuses%2Ffilter.json&"
                              + "oauth_consumer_key%3D" + permissions.ConsumerKey
-                             + "%26oauth_nonce%3D"+nonce
+                             + "%26oauth_nonce%3D" + nonce
                              + "%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D" + timeStamp
                              + "%26oauth_token%3D" + permissions.AccessToken
                              + "%26oauth_version%3D1.0"
-                             + "%26track%3D" +HttpUtility.UrlEncode(track);
+                             + "%26track%3D" + HttpUtility.UrlEncode(track);
 
             string key = permissions.ConsumerSecret + "&" + HttpUtility.UrlEncode(permissions.AccessTokenSecret);
 
@@ -207,7 +235,7 @@ namespace XStreamly.Client
                     signature, permissions.AccessToken, track, permissions.ConsumerKey, nonce, timeStamp);
             streamDefinition.RequestData = bodyParameters;
             SetTwitterStream(streamDefinition);
-            
+
         }
 
         /// <summary>
@@ -216,7 +244,7 @@ namespace XStreamly.Client
         /// <param name="streamDefinition">The definition of what Twitter data to stream and to where</param>
         public string SetTwitterStream(TwitterStream streamDefinition)
         {
-            if(string.IsNullOrEmpty(streamDefinition.RequestData))
+            if (string.IsNullOrEmpty(streamDefinition.RequestData))
             {
                 throw new ArgumentNullException("streamDefinition.RequestData");
             }
@@ -289,13 +317,13 @@ namespace XStreamly.Client
 
             string data = ExecuteRequest(myRequest);
 
-            DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof (Wrapper<T>));
+            DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(Wrapper<T>));
 
             byte[] byteArray = Encoding.ASCII.GetBytes(data);
             using (MemoryStream stream = new MemoryStream(byteArray))
             {
                 Wrapper<T> wrapper = (Wrapper<T>)ser.ReadObject(stream);
-                if(null==wrapper.Sessions)
+                if (null == wrapper.Sessions)
                 {
                     return new T[0];
                 }
@@ -342,13 +370,13 @@ namespace XStreamly.Client
                     response.Close();
                 }
             }
-        }      
+        }
 
         #endregion GenricMethods
 
         private HttpWebRequest GetAuthenticatedRequest(string path)
         {
-            HttpWebRequest myRequest = (HttpWebRequest) WebRequest.Create(s_xstreamlyHost + path);
+            HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(s_xstreamlyHost + path);
             string authInfo = m_emailAddress + ":" + m_password;
             authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
             myRequest.Headers["Authorization"] = "Basic " + authInfo;
@@ -360,7 +388,7 @@ namespace XStreamly.Client
         private class Wrapper<T>
         {
             [DataMember(Name = "items")]
-            public T[] Items { get; set;}
+            public T[] Items { get; set; }
 
             [DataMember(Name = "sessions")]
             public T[] Sessions { get; set; }

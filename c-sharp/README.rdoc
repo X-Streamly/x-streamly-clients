@@ -25,7 +25,23 @@ Then you need to create your client object
 Then to send messages
 
    client.Send("MyChannel","MyEvent",new {Name="Brian", Age=28});
-	
+
+To send multiple messages in on call you can use the XXXXX method:
+   client.SendBatch(new[]{
+     new Message
+     {
+       Channel = "Channel1",
+       Event = "MyEvent",
+       Persisted = false,
+       Contents = new {Data="goes here"}
+     },
+     new Message
+     {
+       Channel = "Channel2",
+       Event = "MyEvent",
+       Contents = "this could be a string too"
+     },
+   });	
 
 === Managing Callbacks
 call backs are webhooks that X-Stream.ly can use to notify your server that
