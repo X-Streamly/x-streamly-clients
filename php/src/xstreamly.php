@@ -14,7 +14,7 @@ class XStreamlyClient{
   private $appKey;
   private $email;
   private $password;
-  private $baseUrl = 'https://secure.x-stream.ly'; 
+  private $baseUrl = 'http://127.0.0.1:3000';//'https://secure.x-stream.ly'; 
 
   public function __construct($appKey,$email,$password){
     $this->appKey = $appKey;
@@ -24,6 +24,11 @@ class XStreamlyClient{
   
   public function send($channel, $eventName, $data,$persisted = false){
     return $this->genericPost('/api/v1.1/' . $this->appKey . '/channels/' . $channel . '/events/' . $eventName . '?persisted=' . ($persisted?'true':'false'),$data);
+  }
+  
+  //should be an array of objects with properties channel,event,message,[persisted]
+  public function sendBatch($messages){
+    return $this->genericPost('/api/v1.1/' . $this->appKey . '/messages',$messages);
   }
   
   public function setCallback($channel, $endPoint,$secret, $eventName){

@@ -21,6 +21,14 @@ Then you need to create your client object
 Then to send messages
 
   $xstreamlyClient->send('MyChannel','MyEvent',"some data",false);
+  
+To send a batch of messages call sendBatch with an array of objects, each object
+needs to have the properties channel,event,message,[persisted]:
+
+  $message1 = array("channel"=>"MyChannel","event"=>"MyEvent","message"=>"{\"json\":\"goes here\"}");
+  $message2 = array("channel"=>"MyChannel2","event"=>"MyEvent2","message"=>"{\"json\":\"goes here\"}");
+
+  $xstreamlyClient->sendBatch(array($message1,$message2));
 	
 === Managing Callbacks
 callbacks are webhooks that X-Stream.ly can use to notify your server that

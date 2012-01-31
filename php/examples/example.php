@@ -4,14 +4,19 @@
 
 require_once '../src/xstreamly.php';
 
-$xstreamlyClient = new XStreamly\XstreamlyClient('app key','email','password');
+$xstreamlyClient = new XStreamly\XstreamlyClient('app key','email address','password');
 
 
 //mesage sending
+
 $xstreamlyClient->send('MyChannel','MyEvent',"some data",false);
 
 $xstreamlyClient->send('MyChannel','MyEvent',array("xstreamly"=> "is cool","this"=>"is fun"),false);
 
+$message1 = array("channel"=>"MyChannel","event"=>"MyEvent","message"=>"{\"json\":\"goes here\"}");
+$message2 = array("channel"=>"MyChannel2","event"=>"MyEvent2","message"=>"{\"json\":\"goes here\"}");
+
+$xstreamlyClient->sendBatch(array($message1,$message2));
 
 
 //registering callbacks
@@ -32,12 +37,13 @@ echo "message usage: " . json_encode($xstreamlyClient->getMessageUsage()) ."\n";
 echo "connection usage: " . json_encode($xstreamlyClient->getConnectionUsage()) ."\n";
 
 
-
 //managing security tokens
 $securityToken = $xstreamlyClient->createToken(true,true,null,"MyEvent",null,false);
 echo "security token key: " . $securityToken . "\n";
 
-echo "callback: " . json_encode($xstreamlyClient->getTokens()) . "\n";
+echo "callback: " . json_encode($xstreamlyClient->getTokens(null,"MyEvent",null)) . "\n";
+
+echo "token: " . json_encode($xstreamlyClient->getTokens()) . "\n";
 
 $xstreamlyClient->deleteToken($securityToken);
 
