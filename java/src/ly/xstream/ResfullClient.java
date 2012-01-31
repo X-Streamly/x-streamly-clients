@@ -151,7 +151,7 @@ public class ResfullClient {
 		
 		if(null!=eventName)
 		{
-			params+="&eventName="+eventName;
+			params+="&event="+eventName;
 		}
 		
 		if(null!=source)
