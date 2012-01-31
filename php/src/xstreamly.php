@@ -3,11 +3,11 @@
 namespace XStreamly;
 
 if(!function_exists('curl_init')){
-  throw new Exception('XStreamly need the CURL PHP extension.');
+  throw new \Exception('XStreamly need the CURL PHP extension.');
 }
 
 if(!function_exists('json_decode')){
-  throw new Exception('XStreamly need the JSON PHP extension.');
+  throw new \Exception('XStreamly need the JSON PHP extension.');
 }
 
 class XStreamlyClient{
