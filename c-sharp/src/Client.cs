@@ -138,8 +138,40 @@ namespace XStreamly.Client
         {
             get
             {
-                return Get<SecurityToken>(string.Format(s_tokenFormatString, m_appKey));
+                return GetSecurityTokens();
             }
+        }
+
+        public IEnumerable<SecurityToken> GetSecurityTokens()
+        {
+            return GetSecurityTokens(null,null,null);
+        }
+
+        public IEnumerable<SecurityToken> GetSecurityTokens(string channel,string eventName,string source)
+        {
+            string queryParams = "";
+
+            if(!string.IsNullOrEmpty(channel))
+            {
+                queryParams = "channel=" + channel;
+            }
+
+            if (!string.IsNullOrEmpty(eventName))
+            {
+                queryParams = "&event=" + eventName;
+            }
+
+            if (!string.IsNullOrEmpty(source))
+            {
+                queryParams = "&source=" + source;
+            }
+
+            if(!string.IsNullOrEmpty(queryParams))
+            {
+                queryParams = "?" + queryParams;
+            }
+
+            return Get<SecurityToken>(string.Format(s_tokenFormatString, m_appKey) + queryParams);
         }
 
         #endregion Security Tokens

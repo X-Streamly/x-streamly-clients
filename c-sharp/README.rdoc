@@ -76,6 +76,14 @@ security tokens:
    {
      //do fun stuff here
    }
+   
+You can all retrieve security tokens that match certain criteria (channel, event and/or source)
+any nulls passed in will match all values:
+
+   foreach (SecurityToken token in client.GetSecurityTokens(null, "MyEvent",null))
+   {
+     //do fun stuff here
+   }
 
 to create a new security token use the createToken method:
 
