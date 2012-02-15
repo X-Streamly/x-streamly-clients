@@ -3,27 +3,28 @@ package ly.xstream.streaming;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import ly.xstream.ResfullClient;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 
 public class StreamingClient implements ILogger {
-	
-	public static int Port = 80;
-	static final String MessageUrl = "PicTacToe/XStreamly/Messages";
 	static Gson XStreaemlyGson;
 	
 	private String appKey;
 	
-	private Cerrio cerrio;
-	
-	private List<ILogger> loggers = new Vector<ILogger>();
-	
+	public Connection connection;
 		
-	public StreamingClient(String appKey, String securityToken){
+	private List<ILogger> loggers = new Vector<ILogger>();
+	private ResfullClient restClient;
+		
+	public StreamingClient(String appKey, String securityToken) throws Exception{
+		restClient = new ResfullClient(appKey,null,null);
+		
 		this.appKey =appKey;
-		cerrio = new Cerrio(StreamingClient.Port,this);
-		cerrio.applySession(securityToken);
+		connection = new Connection(appKey,restClient.getMachine().machine,this);
+		connection.applySession(securityToken);
 		
 		GsonBuilder builder = new GsonBuilder();
 		
@@ -37,78 +38,26 @@ public class StreamingClient implements ILogger {
 	 * events that happen on the channel and send messages on the channel
 	 * 
 	 * @param channelName		The name of the channel
-	 * @param options			Options that specify the behavcior of the channel
+	 * @param options			Options that specify the behavior of the channel
 	 */
 	public Channel subscribe(String channelName,ChannelOptions options){
 		if(!Pattern.matches("^[\\w\\s:-]+$",channelName)){
 			throw new Error(channelName+" isn't a valid name, channel names should only contains letters numbers and -_");
 		}
 		
-		Channel channel = new Channel(channelName, appKey, cerrio, options,this);
+		Channel channel = new Channel(channelName, appKey, connection, options,this);
 		
 		return channel;
 	}
-	
-	/** Deletes all persisted messages associated with a channel
-	 * 
-	 * @param channelName		The name of the channel
-	 */
-	public void deleteChannel(String channelName) {
 		
-		SubscriptionOptions options = new SubscriptionOptions();
-		options.uri=StreamingClient.MessageUrl;
-		options.subscription = "@.AppKey='" + appKey + "' and @.Channel = '"+channelName+"'";
-		options.addAction = new IDataUpdateHandler() {
-			@Override
-			public void handleUpdate(String data) {
-				XstreamlyMessage message = StreamingClient.XStreaemlyGson.fromJson(data, XstreamlyMessage.class);
-				cerrio.sendDelete(StreamingClient.MessageUrl,message.Key);
-				
-			}
-		};
-		
-		SubscriptionCloser closer = new SubscriptionCloser();
-		
-		options.subscriptionLoaded = closer;
-		
-		Stream stream = this.cerrio.subscribe(options);
-		closer.stream = stream;
-	}
-	
 
-	/** Will stream a list of channels to the callback specified
-	 * 
-	 * @param callback		The IChannelCallback to be called when a channel is created (it will also be called for all existing channels)
-	 */
-	public IClosable listChannels(IChannelCallback callback) {
-		SubscriptionOptions options = new SubscriptionOptions();
-		options.uri=StreamingClient.MessageUrl;
-		options.subscription = "modified(@.Key) and @.AppKey='" + appKey + "'";
 		
-		ChannelStreamer streamer = new ChannelStreamer(callback);
-		
-		options.addAction = streamer;
-		
-		streamer.stream = this.cerrio.subscribe(options);
-		return streamer;
-	}
-	
 	/** Will stream events to the callback when ever a client enters of leaves a channel
 	 * 
 	 * @param callback		The IActiveChannelCallback to be called when a user enters or leaves a channel
 	 */
 	public IClosable listActiveChannels(IActiveChannelCallback callback) {
-		SubscriptionOptions options = new SubscriptionOptions();
-		options.uri="PicTacToe/XStreamly/StatsPresence";
-		options.subscription = "@.AppKey='" + appKey + "'";
-		
-		ActiveChannelStreamer streamer = new ActiveChannelStreamer(callback);
-		
-		options.addAction = streamer;
-		options.modifyAction = streamer;
-		
-		streamer.stream = this.cerrio.subscribe(options);
-		return streamer;
+		return connection.subscribeActiveChannels(callback);
 	}
 	
 	/** Will stream events to the callback when ever a client enters of leaves a specific channel
@@ -117,24 +66,15 @@ public class StreamingClient implements ILogger {
 	 * @param callback		The IActiveChannelCallback to be called when a user enters or leaves the specified channel
 	 */
 	public IClosable getChanelActivity(String channel,IActiveChannelCallback callback) {
-		SubscriptionOptions options = new SubscriptionOptions();
-		options.uri="PicTacToe/XStreamly/StatsPresence";
-		options.subscription = "@.AppKey='" + appKey + "' and @.Channel = '"+channel+"'";
-		
-		ActiveChannelStreamer streamer = new ActiveChannelStreamer(callback);
-		
-		options.addAction = streamer;
-		options.modifyAction = streamer;
-		
-		streamer.stream = this.cerrio.subscribe(options);
-		return streamer;
+		//TODO: implement
+		return null;
 	}
 	
 	/** Total stops all connections to the X-Stream.ly server
 	 */
 	public void stop() {
 		log("stopping");
-		this.cerrio.stop();
+		this.connection.stop();
 	}
 	
 	/** Adds extra permissions to the connection
@@ -142,7 +82,7 @@ public class StreamingClient implements ILogger {
 	 * @param securityToken		The GUID for the security token to add to the connection
 	 */
 	public void addSecurityToken(String securityToken){
-		this.cerrio.applySession(securityToken);
+		this.connection.applySession(securityToken);
 	}
 	
 	/** Adds a logger that will be notified when any errors happen inside the library
@@ -177,7 +117,7 @@ public class StreamingClient implements ILogger {
 
 	private class SubscriptionCloser implements SimpleAction{
 		
-		Stream stream = null;
+		IClosable stream = null;
 		
 		@Override
 		public void fireAction() {
@@ -188,9 +128,9 @@ public class StreamingClient implements ILogger {
 		
 	}
 
-	private class ChannelStreamer implements IDataUpdateHandler,IClosable{
+	/*private class ChannelStreamer implements IDataUpdateHandler,IClosable{
 
-		Stream stream;
+		IClosable stream;
 		private IChannelCallback callback;
 		private HashSet<String> knownChannels = new HashSet<String>();
 		
@@ -218,7 +158,7 @@ public class StreamingClient implements ILogger {
 	
 	private class ActiveChannelStreamer implements IDataUpdateHandler,IClosable{
 
-		Stream stream;
+		IClosable stream;
 		private IActiveChannelCallback callback;
 		
 		private HashMap<String,ChannelData> savedChannelData = new HashMap<String, ChannelData>();
@@ -256,5 +196,5 @@ public class StreamingClient implements ILogger {
 			}
 		}
 		
-	}
+	}*/
 }

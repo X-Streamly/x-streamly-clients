@@ -6,7 +6,7 @@ public class Member {
 	public String id;
 	HashMap<String,String> memberInfo;
 	
-	private HashMap<String,XstreamlyPresenceMessage> records = new HashMap<String, XstreamlyPresenceMessage>();
+	private HashMap<String,MemberMessage> records = new HashMap<String, MemberMessage>();
 	
 	Member(String id, HashMap<String,String> memberInfo){
 		this.id = id;
@@ -17,8 +17,8 @@ public class Member {
 		return memberInfo;
 	}
 		
-	void addRecord(XstreamlyPresenceMessage record){
-		records.put(record.Key, record);
+	void addRecord(MemberMessage record){
+		records.put(record.item.Key, record);
 	}
 	
 	void removeRecord(String key){
@@ -27,7 +27,7 @@ public class Member {
 	
 	Boolean containsSocket(String socketId){
 		for(String key: records.keySet()){
-			if(records.get(key).SocketId.equals(socketId)){
+			if(records.get(key).item.SocketId.equals(socketId)){
 				return true;
 			}
 		}

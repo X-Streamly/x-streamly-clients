@@ -5,24 +5,27 @@ import java.util.Date;
 import ly.xstream.streaming.*;
 
 public class simple {
-	private static final String AppKey = "put my appKey here";
-	private static final String Email = "put my e-mail address here";
-	private static final String Password = "put my password here";
-	private static final String SecurityToken = "put my security token here";
+	private static final String AppKey = "";
+	private static final String Email = "";
+	private static final String Password = "";
+	private static final String SecurityToken = "";
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
 
-		try {
-			ResfullClient client = new ResfullClient(AppKey,Email,Password);
+		try {			
+			
+			/*ResfullClient client = new ResfullClient(AppKey,Email,Password);
+			System.out.println(client.getMachine());		
 			Callback c = new Callback();
 			c.channel="C";
 			c.event="asdfadsf2";
 			c.secret=new Date().toString();
 			
-			client.send("MyChannel","MyEvent",c);
+			client.send("MyChannel2","MyEvent3",c);
 			
+						
 			client.setCallback("MyChannel", "http://asdfasdfasdf.com", "Don't tell anyone", "bob");
 			for(Callback callback : client.getCallbacks().items){
 				System.out.println(callback);
@@ -34,9 +37,8 @@ public class simple {
 				System.out.println("Channel "+key+", "+channels.channels.get(key));
 			}
 			
-			System.out.println(client.usageConnections());
+			System.out.println(client.getUsage());
 			
-			System.out.println(client.usageConnections());
 			
 			String token = client.createToken(true, false, null, "Event", null, false);
 			
@@ -45,14 +47,14 @@ public class simple {
 			client.deleteToken(token);
 			
 			for(Token t:client.getTokens().sessions){
-				System.out.println(t.key);
-			}
+				System.out.println(t.key+": channel:"+t.channel+" event: "+t.eventName+" source: "+t.source);
+			}*/
 			
 			StreamingClient streamingClient = new StreamingClient(AppKey,SecurityToken);
 			streamingClient.addLogger(new ILogger() {
 				@Override
 				public void log(String s) {
-					System.out.println(s);
+					System.out.println("log:"+s);
 				}
 				@Override
 				public void handleError(String message, Exception e) {
@@ -69,7 +71,7 @@ public class simple {
 				@Override
 				public void handleMessage(String eventName, String messageData,
 						Member member, String key) {
-					System.out.println("Got message "+eventName+" data: "+messageData+ " from "+member.id);
+					System.out.println("All: Got message "+eventName+" data: "+messageData+ " from "+(null==member?"":member.id));
 					
 				}
 			});
@@ -78,7 +80,7 @@ public class simple {
 				@Override
 				public void handleMessage(String eventName, String messageData,
 						Member member, String key) {
-					System.out.println("Got message "+eventName+" data: "+messageData+ " from "+member.id);
+					System.out.println("specific event: Got message "+eventName+" data: "+messageData+ " from "+(null==member?"":member.id));
 					
 				}
 			});
@@ -103,27 +105,20 @@ public class simple {
 			});
 			
 			SimpleData data = new SimpleData();
-			data.value1 = "frankasdfasdfasdf";
+			data.value1 = "[qweoprkqwerkd";
 			data.value2 = "joe";
 			Boolean sendAsPersistedMessage = false;
 			
 			channel.trigger("myEvent", data, sendAsPersistedMessage);
 			
-			streamingClient.listActiveChannels(new IActiveChannelCallback() {
+			/*streamingClient.listActiveChannels(new IActiveChannelCallback() {
 				@Override
 				public void channelChanged(ChannelData channel) {
-					System.out.println("Got channel data "+channel.Channel+" max: "+channel.MaxConcurrentConnections+" current: "+channel.CurrentConcurrentConnections);
+					System.out.println("Got channel data "+channel.channel+" members: "+channel.count);
 					
 				}
-			});
-			
-			streamingClient.listChannels(new IChannelCallback() {
-				@Override
-				public void channelFound(String channel) {
-					System.out.println("new channel found: "+channel);
-				}
-			});
-
+			});*/
+			System.out.println("done");
 			System.in.read();
 			
 		} catch (Exception e) {

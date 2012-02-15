@@ -1,29 +1,34 @@
 package ly.xstream;
 
+import java.io.*;
 import java.net.URI;
+import java.security.*;
+
 import java.util.HashMap;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
+import org.apache.http.*;
 import org.apache.http.client.methods.*;
+import org.apache.http.conn.scheme.*;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.message.AbstractHttpMessage;
+import org.apache.http.params.*;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import ly.stream.utilities.*;
 
 /** A Client for accessing the RESTfull API of http://x-stream.ly
  * @author Brian Willard
  * @version 1.0 
  */
-public class ResfullClient {
-	
-	private static final String XSTREAMLY_HOST = "secure.x-stream.ly";
+public class ResfullClient {	
+	private static final String XSTREAMLY_HOST = "api.x-stream.ly";
 	private static final int XSTREAMLY_PORT = 443;
 	private static final String XSTREAMLY_PROTOCAL = "https";
 	
@@ -38,18 +43,52 @@ public class ResfullClient {
 	 * @param emailAddress		The e-mail address you use to log into the service with
 	 * @param emailAddress		The password you use to log into the service with
 	 */
+	@SuppressWarnings("deprecation")
 	public ResfullClient(final String appKey, final String emailAddress, final String password){
+		final SchemeRegistry schemeRegistry = new SchemeRegistry();
+		schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
+		SSLSocketFactory sslSocketFactory= createAdditionalCertsSSLSocketFactory();
+		
+		sslSocketFactory.setHostnameVerifier(new CustomHostNameVerifier());
+		
+		schemeRegistry.register(new Scheme("https", sslSocketFactory, 443));
+		
+		// and then however you create your connection manager, I use ThreadSafeClientConnManager
+		final HttpParams params = new BasicHttpParams();
+		HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
+        HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
+		
+		final ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager(params,schemeRegistry);
+		httpClient = new DefaultHttpClient(cm, params);
+
 		this.appKey = appKey;
-				
-		httpClient = new DefaultHttpClient();
+		
 		byte[] byteData = (emailAddress+":"+password).getBytes();
 		auth = "Basic "+Base64.encodeBase64String(byteData);
-		
-		/*httpClient.getCredentialsProvider().setCredentials(
-				new AuthScope(XSTREAMLY_HOST ,XSTREAMLY_PORT ),
-				new UsernamePasswordCredentials(emailAddress,password));*/
-		
+				
 		httpHost = new HttpHost(XSTREAMLY_HOST,XSTREAMLY_PORT,XSTREAMLY_PROTOCAL);
+	}
+		
+	private org.apache.http.conn.ssl.SSLSocketFactory createAdditionalCertsSSLSocketFactory() {
+	    try {
+	        final KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+
+	        // the bks file we generated above
+
+	        FileInputStream in = new FileInputStream(new File("./my.keystore"));
+	        try {
+	            // don't forget to put the password used above in strings.xml/mystore_password
+	            //ks.load(in, context.getString( R.string.mystore_password ).toCharArray());
+	        	ks.load(in, "password".toCharArray());
+	        } finally {
+	            in.close();
+	        }
+
+	        return new AdditionalKeyStoresSSLSocketFactory(ks);
+
+	    } catch( Exception e ) {
+	        throw new RuntimeException(e);
+	    }
 	}
 	
 	/** Sends a message (non-persisted) on the channel and with the event you specify
@@ -119,20 +158,20 @@ public class ResfullClient {
 	
 	/** Returns an array of historical connection data
 	 */
-	public UsageData usageConnections() throws Exception{
-		return genericGet("/usage/connections/",null,UsageData.class);
+	public UsageData getUsage() throws Exception{
+		return genericGet("/api/v1.1/"+appKey+"/usage",null,UsageData.class);
 	}
-	
-	/** Returns an array of historical message usage data
-	 */
-	public UsageData usageMessages() throws Exception{
-		return genericGet("/usage/messages/",null,UsageData.class);
-	}
-	
+		
 	/** Returns all the currently valid security tokens your account has
 	 */
 	public Tokens getTokens() throws Exception{
 		return getTokens(null,null,null);
+	}
+	
+	/** Gets the endpoint to connect to directly for websockets
+	 */
+	public WebsocketEndpoint getMachine() throws Exception{
+		return genericGet("/api/v1.1/"+appKey+"/appPool",null,WebsocketEndpoint.class);
 	}
 	
 	/** Returns all the currently valid security tokens your account has
@@ -160,12 +199,7 @@ public class ResfullClient {
 		}
 		
 		Tokens tokens =  genericGet("/api/v1.1/" + appKey + "/security",params,Tokens.class);
-		
-		for(Token t :tokens.sessions){
-			t.channel = t.itemsFilter.Channel;
-			t.event = t.itemsFilter.EventName;
-		}
-		
+				
 		return tokens;
 	}
 	
@@ -256,7 +290,8 @@ public class ResfullClient {
 		String json = validateResponse(response);
 			
 		GsonBuilder builder = new GsonBuilder();
-		builder.registerTypeAdapter(UsageDataPoint.class, new UsageDataPointDeserializer());
+		
+		builder.registerTypeAdapter(java.util.Date.class, new UsageDataPointDeserializer());
 		
 		Gson gson = builder.create();
 		

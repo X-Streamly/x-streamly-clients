@@ -19,7 +19,8 @@ namespace XStreamly.Client
     {
         private static readonly string s_xstreamlyHost = "https://secure.x-stream.ly";
         private static readonly DateTime s_epoch = new DateTime(1970, 1, 1);
-        private static readonly string s_subscriptionFormatString = "/api/v1.1/{0}/feeds/out/custom";
+        private static readonly string s_callbackFormatString = "/api/v1.1/{0}/feeds/out/custom";
+        private static readonly string s_presenceCallbackFormatString = "/api/v1.1/{0}/feeds/out/presence";
         private static readonly string s_twitterStreamFormatString = "/api/v1.1/{0}/feeds/in/twitter";
         private static readonly string s_tokenFormatString = "/api/v1.1/{0}/security";
         private static readonly string s_messageUsageFormatString = "/usage/messages";
@@ -87,13 +88,31 @@ namespace XStreamly.Client
         /// <param name="callback">The call back definition</param>
         public string SetCallback(Callback callback)
         {
+            return SetCallback(callback, s_callbackFormatString);
+        }
+
+        /// <summary>
+        /// Register a new presence callback for X-Stream.ly
+        /// 
+        /// A presence callback is used to register an end point on a server that you control
+        /// with X-Stream.ly so ever time a channel becomes active or empty
+        /// your end point will be notified
+        /// </summary>
+        /// <param name="callback">The call back definition</param>
+        public string SetPresenceCallback(Callback callback)
+        {
+            return SetCallback(callback, s_presenceCallbackFormatString);
+        }
+
+        public string SetCallback(Callback callback,string formatString)
+        {
             DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(Callback));
 
             MemoryStream ms = new MemoryStream();
             ser.WriteObject(ms, callback);
             string stringData = Encoding.Default.GetString(ms.ToArray());
 
-            return PostData(string.Format(s_subscriptionFormatString, m_appKey), stringData);
+            return PostData(string.Format(formatString, m_appKey), stringData);
         }
 
         /// <summary>
@@ -102,7 +121,16 @@ namespace XStreamly.Client
         /// <param name="key"></param>
         public void RemoveCallback(string key)
         {
-            Delete(string.Format(s_subscriptionFormatString, m_appKey) + "/" + key);
+            Delete(string.Format(s_callbackFormatString, m_appKey) + "/" + key);
+        }
+
+        /// <summary>
+        /// Removes an existing presence callback from X-Stream.ly
+        /// </summary>
+        /// <param name="key"></param>
+        public void RemovePresenceCallback(string key)
+        {
+            Delete(string.Format(s_presenceCallbackFormatString, m_appKey) + "/" + key);
         }
 
         /// <summary>
@@ -112,7 +140,18 @@ namespace XStreamly.Client
         {
             get
             {
-                return GetWithWrapper<Callback>(string.Format(s_subscriptionFormatString, m_appKey));
+                return GetWithWrapper<Callback>(string.Format(s_callbackFormatString, m_appKey));
+            }
+        }
+
+        /// <summary>
+        /// Returns a collection of all currently active callbacks
+        /// </summary>
+        public IEnumerable<Callback> PresenceCallbacks
+        {
+            get
+            {
+                return GetWithWrapper<Callback>(string.Format(s_presenceCallbackFormatString, m_appKey));
             }
         }
         #endregion Callbacks

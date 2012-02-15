@@ -3,29 +3,31 @@ package ly.xstream.streaming;
 import java.util.*;
 
 public class Channel {
-	private Cerrio cerrio;
+	private Connection connection;
 	private String name;
 	private String appKey;
-	private String uri =StreamingClient.MessageUrl;
-	private Boolean isPrivate = false;
 	private Boolean closed =false;
-	private PresenceChannel presenceChannel;
-	private Boolean isSubscriptionLoaded = false;
-	private List<SimpleAction> triggersWaitingOnSubscriptionLoad = new Vector<SimpleAction>();
-	private String nonPersistedId;
-	
+
 	private HashMap<String,List<IXstreamlyMessageHandler>> bindings = new HashMap<String,List<IXstreamlyMessageHandler>> ();
 		
-	private Stream stream;
+	private IClosable stream;
 	
 	private ChannelOptions options;
 	
 	private ILogger logger;
+	
+	private boolean membersLoaded = false;
+	private final Member member;
+	private final Members members = new Members();
+	
+	private static String _savedMessageId;
+	
+	private final Vector<IXstreamlyChannelEventsHandler> chanelEventsHandlers = new Vector<IXstreamlyChannelEventsHandler>();
 		
-	public Channel(String name, String appKey, Cerrio cerrio,ChannelOptions options,ILogger logger){
+	public Channel(String name, String appKey, Connection connection,ChannelOptions options,ILogger logger){
 		this.name = name;
 		this.appKey = appKey;
-		this.cerrio = cerrio;
+		this.connection = connection;
 		this.logger =logger;
 		
 		if(null==options)
@@ -35,24 +37,20 @@ public class Channel {
 		
 		this.options =options;
 		
-		
-		Boolean createPresenceChannel =  options.createPresence;
-		Boolean isPrivate = options.isPrivate;
-		
-		if(createPresenceChannel){
-			presenceChannel = new PresenceChannel(name, appKey, cerrio, options.userId, options.userInfo, isPrivate,logger);
-			presenceChannel.start();
+		if(null==options.userId || options.userId.isEmpty()){
+			if(null==_savedMessageId){
+				_savedMessageId = Double.toString(Math.random());
+			}
+			options.userId = _savedMessageId;
 		}
+				
+		
+		this.member = new Member(options.userId,options.userInfo);
 		
 		startAction();
 	}
 	
-	public void close(){
-		if(null!=presenceChannel){
-			presenceChannel.close();
-			presenceChannel = null;
-		}
-		
+	public void close(){		
 		if(null!=stream){
 			stream.close();
 			stream = null;
@@ -61,19 +59,11 @@ public class Channel {
 	}
 	
 	public void trigger(String eventName, Object data, Boolean persisted){
-		if(isSubscriptionLoaded){
-			cerrio.connection.onActive(new TriggerAction(eventName,data,persisted), false);
-		} else {
-			triggersWaitingOnSubscriptionLoad.add(new TriggerWaitingOnSubscriptionLoad(eventName,data,persisted));
-		}
+		connection.onActive(new TriggerAction(eventName,data,persisted), false);
 	}
 	
 	public void removePersistedMessage(String key){
-		if(isSubscriptionLoaded){
-			cerrio.connection.onActive(new RemovePersistedMessageAction(key), false);
-		}else{
-			triggersWaitingOnSubscriptionLoad.add(new RemovePersistedMessageWaitingOnSubscriptionLoad(key));
-		}
+		connection.onActive(new RemovePersistedMessageAction(key), false);
 	}
 	
 	public void bind(String eventName,IXstreamlyMessageHandler handler){
@@ -93,73 +83,98 @@ public class Channel {
 	}
 	
 	public void bindToChannelEvents(IXstreamlyChannelEventsHandler handler){
-		if(null!=presenceChannel)
-		{
-			presenceChannel.bindToChannelEvents(handler);
+		chanelEventsHandlers.add(handler);
+		
+		if(membersLoaded){
+			handler.loaded(members);
 		}
 	}
 	
-	private void startAction(){
-		final SubscriptionOptions options = new SubscriptionOptions();
-		options.uri = uri;
-		options.subscription = "@.AppKey = '"+appKey+"' and @.Channel = '"+name+"' and @.SocketId != 'placeholder' and @.Private="+isPrivate;
-		options.includePersistedMessags = this.options.includePersistedMessags;
-		options.addAction =  new IDataUpdateHandler() {
-			@Override
-			public void handleUpdate(String data) {
-				XstreamlyMessage message = StreamingClient.XStreaemlyGson.fromJson(data, XstreamlyMessage.class);
-				if(!message.Persisted){
-					nonPersistedId = message.Key;
-				}
-				if((options.includePersistedMessags && message.Persisted)||isSubscriptionLoaded){
-					itemRecieved(message);
-				}
-				
-			}
-		};
-		options.modifyAction =new IDataUpdateHandler() {
-			@Override
-			public void handleUpdate(String data) {
-				XstreamlyMessage message= StreamingClient.XStreaemlyGson.fromJson(data, XstreamlyMessage.class);
-				itemRecieved(message);
-			}
-		};
-				
-		options.subscriptionLoaded = new SimpleAction() {
-			@Override
-			public void fireAction() {
-				subscriptionLoaded();
-				
-			}
-		};
-				
-		options.streamResetAction = new SimpleAction() {
-			@Override
-			public void fireAction() {
-				streamResetAction();
-			}
-		};
-		
-		stream = cerrio.subscribe(options);
+	private void setMembmersLoaded(){
+		membersLoaded = true;
 	}
 	
-	private void itemRecieved(XstreamlyMessage message){
+	private boolean getMembmersLoaded(){
+		return membersLoaded;
+	}
+	
+	private void startAction(){
+		final Member me = this.member;
+		stream = connection.subscribe(name,member,
+				new IDataUpdateHandler() {
+					@Override
+					public void handleUpdate(DataMessages messages) {
+						for(DataMessage message: messages.messages){
+							itemRecieved(message);
+						}
+					}
+				}, new IMemberMessageHandler() {
+					@Override
+					public void handleMessage(MembersMessage memberMessages) {
+						for(MemberMessage message: memberMessages.members){
+							HashMap<String,String> info 
+								= (HashMap<String,String>) StreamingClient.XStreaemlyGson.fromJson(message.item.Info, HashMap.class);
+							if(message.action.equals("add")){
+								Member member = members.get(message.item.MemberId);
+								
+								if(null!=member){
+									member.addRecord(message);
+								} else {
+									member = new Member(message.item.MemberId, info);
+									members.add(member);
+									
+									if(message.item.MemberId.equals(me.id)){
+										setMembmersLoaded();
+										for(IXstreamlyChannelEventsHandler handler:  chanelEventsHandlers){
+											handler.loaded(members);
+										}
+									} 
+									else if (getMembmersLoaded()) {
+										for(IXstreamlyChannelEventsHandler handler:  chanelEventsHandlers){
+											handler.memberAdded(member);
+										}
+									}
+								}
+							}
+							else if (message.action.equals("delete")){
+								Member member = members.get(message.item.MemberId);
+								member.removeRecord(message.item.Key);
+								if(!member.isAlive()){
+									Member removedMember = members.remove(message.item.MemberId);
+									for(IXstreamlyChannelEventsHandler handler:  chanelEventsHandlers){
+										handler.memberRemoved(removedMember);
+									}
+								}
+							} else if (message.action.equals("modify")){
+								Member member = members.get(message.item.MemberId);
+								member.memberInfo = info;
+								for(IXstreamlyChannelEventsHandler handler:  chanelEventsHandlers){
+									handler.membmerModified(member);
+								}
+							} else {
+								logger.handleError("action "+message.action +" is unsuported",new Exception());
+							}
+						}
+						
+					}
+				});
+	}
+	
+	private void itemRecieved(DataMessage message){
 		if(closed)
 		{
 			logger.log("recieved a message when closed");
 			return;
 		}
 		
-		if (message.SocketId != cerrio.connection.id || options.includeMyMessages) {
+		if (message.SocketId != connection.id || options.includeMyMessages) {
 			
+			//TODO: get member
 			Member member = null;
 			
-			if(null!=presenceChannel)
-			{
-				member = presenceChannel.members.socketId(message.SocketId);
-			}
 			
-			fireEvent(message.EventName,message.Message,member,message.Key);
+			//TODO: persistance key
+			fireEvent(message.EventName,message.Message,member,null);
 		}
 	}
 	
@@ -179,40 +194,7 @@ public class Channel {
 		}
 	}
 	
-	private void subscriptionLoaded(){
-		isSubscriptionLoaded= true;
-		for(SimpleAction action: triggersWaitingOnSubscriptionLoad){
-			action.fireAction();
-		}
 		
-		if(null!=options.subscriptionLoaded)
-		{
-			options.subscriptionLoaded.fireAction();
-		}
-	}
-	
-	private void streamResetAction(){
-		isSubscriptionLoaded = false;
-		nonPersistedId= null;
-	}
-		
-	private class TriggerWaitingOnSubscriptionLoad implements SimpleAction{
-		private String eventName;
-		private Object data;
-		private Boolean persisted;
-		
-		public TriggerWaitingOnSubscriptionLoad(String eventName, Object data, Boolean persisted){
-			this.eventName =eventName;
-			this.data = data;
-			this.persisted = persisted;
-		}
-
-		@Override
-		public void fireAction() {
-			trigger(eventName,data,persisted);
-		}
-	}
-	
 	private class RemovePersistedMessageWaitingOnSubscriptionLoad implements SimpleAction{
 		private String key;
 		
@@ -239,22 +221,13 @@ public class Channel {
 		@Override
 		public void onConnectionActive(Connection connection) {
 			
-			XstreamlyMessage message = new XstreamlyMessage();
-			message.Channel = name;
-			message.AppKey = appKey;
-			message.EventName = eventName;
-			message.TimeStamp = new Date();
-			message.Message= StreamingClient.XStreaemlyGson.toJson(data);
-			message.SocketId = connection.id;
-			message.Persisted = persisted;
-			message.Private = isPrivate;
-			message.Key="";
-			
-			if(null==nonPersistedId || persisted){
-				cerrio.sendAdd(uri, message);
-			} else {
-				message.Key=nonPersistedId;
-				cerrio.sendModify(uri, message);
+			DataMessage  message = new DataMessage(appKey,name,eventName,connection.id,
+					StreamingClient.XStreaemlyGson.toJson(data));
+			DataMessages messages = new DataMessages(new DataMessage[]{message});
+			try{
+				connection.send("internal:send",messages);
+			} catch(Exception ex){
+				
 			}
 		}
 	}
@@ -267,7 +240,7 @@ public class Channel {
 		}
 		@Override
 		public void onConnectionActive(Connection connection) {	
-			cerrio.sendDelete(uri, key);
+			//TODO: impliment delete persisted messages
 		}
 	}
 }

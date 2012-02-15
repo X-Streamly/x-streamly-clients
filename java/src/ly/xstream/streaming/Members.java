@@ -13,8 +13,8 @@ public class Members {
 		members.put(member.id, member);
 	}
 	
-	void remove(String memberId){
-		members.remove(memberId);
+	Member remove(String memberId){
+		return members.remove(memberId);
 	}
 	
 	Member socketId(String socketId){
