@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Runtime.Serialization;
 
 namespace XStreamly.Client
@@ -7,25 +6,37 @@ namespace XStreamly.Client
     [DataContract]
     public class UsageData
     {
-        [DataMember(Name = "user")]
-        public string  User { get; set;}
+        [DataMember(Name = "maxConcurentConnections")]
+        public int MaxConcurentConnections { get; set; }
 
-        [DataMember(Name = "data")]
-        private object[][] m_rawData { 
+        [DataMember(Name = "totalConnections")]
+        public int TotalConnections { get; set; }
+
+        [DataMember(Name = "messagesSent")]
+        public int MessagesSent { get; set; }
+
+        public DateTime Date { get; private set; }
+
+        private string m_myDate;
+        [DataMember(Name = "date")]
+        private string MyDate
+        {
             get
             {
-                throw new NotImplementedException();
+                return m_myDate;
             }
+
             set
             {
-                Data = value.Select(p => new UsageDataPoint
-                                      {
-                                          Date = DateTime.Parse(p[0].ToString()),
-                                          Amount = (int) p[1]
-                                      }).ToArray();
+                m_myDate = value;
+                Date = DateTime.Parse(value);
             }
         }
 
-        public UsageDataPoint[] Data {get;private set;}
+        public override string ToString()
+        {
+            return string.Format("{0}: messages: {1}, total connection: {2}, max concurent conections:{3}", Date,
+                                 MessagesSent, TotalConnections, MaxConcurentConnections);
+        }
     }
 }

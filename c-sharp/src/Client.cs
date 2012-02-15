@@ -17,14 +17,13 @@ namespace XStreamly.Client
     /// </summary>
     public class Client
     {
-        private static readonly string s_xstreamlyHost = "https://secure.x-stream.ly";
+        private static readonly string s_xstreamlyHost = "https://api.x-stream.ly";
         private static readonly DateTime s_epoch = new DateTime(1970, 1, 1);
         private static readonly string s_callbackFormatString = "/api/v1.1/{0}/feeds/out/custom";
         private static readonly string s_presenceCallbackFormatString = "/api/v1.1/{0}/feeds/out/presence";
         private static readonly string s_twitterStreamFormatString = "/api/v1.1/{0}/feeds/in/twitter";
         private static readonly string s_tokenFormatString = "/api/v1.1/{0}/security";
-        private static readonly string s_messageUsageFormatString = "/usage/messages";
-        private static readonly string s_connectionUsaageFormatString = "/usage/connections";
+        private static readonly string s_usageFormatString = "/api/v1.1/{0}/usage";
 
         private readonly string m_appKey;
         private readonly string m_emailAddress;
@@ -99,7 +98,7 @@ namespace XStreamly.Client
         /// your end point will be notified
         /// </summary>
         /// <param name="callback">The call back definition</param>
-        public string SetPresenceCallback(Callback callback)
+        private string SetPresenceCallback(Callback callback)
         {
             return SetCallback(callback, s_presenceCallbackFormatString);
         }
@@ -128,7 +127,7 @@ namespace XStreamly.Client
         /// Removes an existing presence callback from X-Stream.ly
         /// </summary>
         /// <param name="key"></param>
-        public void RemovePresenceCallback(string key)
+        private void RemovePresenceCallback(string key)
         {
             Delete(string.Format(s_presenceCallbackFormatString, m_appKey) + "/" + key);
         }
@@ -147,7 +146,7 @@ namespace XStreamly.Client
         /// <summary>
         /// Returns a collection of all currently active callbacks
         /// </summary>
-        public IEnumerable<Callback> PresenceCallbacks
+        private IEnumerable<Callback> PresenceCallbacks
         {
             get
             {
@@ -329,18 +328,11 @@ namespace XStreamly.Client
         /// <summary>
         /// Gets the historical message usage by day
         /// </summary>
-        public IEnumerable<UsageDataPoint> GetMessageUsage()
+        public IEnumerable<UsageData> GetUsage()
         {
-            return Get<UsageData>(string.Format(s_messageUsageFormatString, m_appKey)).Data;
+            return GetWithWrapper<UsageData>(string.Format(s_usageFormatString, m_appKey));
         }
 
-        /// <summary>
-        /// Gets the historical message usage by day
-        /// </summary>
-        public IEnumerable<UsageDataPoint> GetConnectionUsage()
-        {
-            return Get<UsageData>(string.Format(s_connectionUsaageFormatString, m_appKey)).Data;
-        }
 
         #endregion Usage
 

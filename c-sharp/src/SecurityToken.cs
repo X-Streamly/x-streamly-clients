@@ -9,12 +9,6 @@ namespace XStreamly.Client
         [DataMember(Name = "key")]
         public String Key { get; set;}
 
-        [DataMember(Name = "lifetime")]
-        public int Lifetime { get; set;}
-
-        [DataMember(Name = "secure")]
-        public bool Secure { get; set; }
-
         [DataMember(Name = "email")]
         public string Email { get; set; }
 

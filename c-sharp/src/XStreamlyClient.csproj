@@ -63,7 +63,6 @@
     <Compile Include="SecurityToken.cs" />
     <Compile Include="TwitterPermissions.cs" />
     <Compile Include="TwitterStream.cs" />
-    <Compile Include="UsageDataPoint.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
