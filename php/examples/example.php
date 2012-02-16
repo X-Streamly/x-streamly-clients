@@ -13,8 +13,8 @@ $xstreamlyClient->send('MyChannel','MyEvent',"some data",false);
 
 $xstreamlyClient->send('MyChannel','MyEvent',array("xstreamly"=> "is cool","this"=>"is fun"),false);
 
-$message1 = array("channel"=>"MyChannel","event"=>"MyEvent","message"=>"{\"json\":\"goes here\"}");
-$message2 = array("channel"=>"MyChannel2","event"=>"MyEvent2","message"=>"{\"json\":\"goes here\"}");
+$message1 = array("channel"=>"MyChannel","event"=>"MyEvent","message"=>"{\"json\":\"goes here1\"}");
+$message2 = array("channel"=>"MyChannel2","event"=>"MyEvent2","message"=>"{\"json\":\"goes here2\"}");
 
 $xstreamlyClient->sendBatch(array($message1,$message2));
 
@@ -30,11 +30,7 @@ $xstreamlyClient->removeCallback($callBackKey);
 
 
 //usage data
-echo "active channels: " . json_encode($xstreamlyClient->getActiveChannels()) ."\n";
-
-echo "message usage: " . json_encode($xstreamlyClient->getMessageUsage()) ."\n";
-
-echo "connection usage: " . json_encode($xstreamlyClient->getConnectionUsage()) ."\n";
+echo "message usage: " . json_encode($xstreamlyClient->getUsageData()) ."\n";
 
 
 //managing security tokens
