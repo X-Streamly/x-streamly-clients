@@ -117,9 +117,7 @@ public class Channel {
 							if(message.action.equals("add")){
 								Member member = members.get(message.item.MemberId);
 								
-								if(null!=member){
-									member.addRecord(message);
-								} else {
+								if(null==member){
 									member = new Member(message.item.MemberId, info);
 									members.add(member);
 									
@@ -135,6 +133,8 @@ public class Channel {
 										}
 									}
 								}
+								
+								member.addRecord(message);
 							}
 							else if (message.action.equals("delete")){
 								Member member = members.get(message.item.MemberId);
@@ -168,9 +168,8 @@ public class Channel {
 		}
 		
 		if (message.SocketId != connection.id || options.includeMyMessages) {
-			
-			//TODO: get member
-			Member member = null;
+						
+			Member member = members.socketId(message.SocketId);
 			
 			
 			//TODO: persistance key
