@@ -14,7 +14,7 @@ class XStreamlyClient{
   private $appKey;
   private $email;
   private $password;
-  private $baseUrl = 'https://secure.x-stream.ly'; 
+  private $baseUrl = 'https://api.x-stream.ly'; 
 
   public function __construct($appKey,$email,$password){
     $this->appKey = $appKey;
@@ -43,17 +43,9 @@ class XStreamlyClient{
   public function getCallbacks(){
     return $this->genericGet('/api/v1.1/' . $this->appKey . '/feeds/out/custom')->items;
   }
-  
-  public function getActiveChannels(){
-    return $this->genericGet('/api/v1.1/' . $this->appKey . '/activeChannels');
-  }
-  
-  public function getConnectionUsage(){
-    return $this->genericGet('/usage/connections');
-  }
-  
-  public function getMessageUsage(){
-    return $this->genericGet('/usage/messages');
+    
+  public function getUsageData(){
+    return $this->genericGet('/api/v1.1/' . $this->appKey . '/usage');
   }
   
   public function getTokens($channel=null, $eventName=null, $source=null){

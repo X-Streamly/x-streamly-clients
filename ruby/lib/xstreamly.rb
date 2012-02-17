@@ -1,3 +1,4 @@
+require 'rubygems'
 require 'json' #gem install json
 require 'base64'
 require 'cgi'
@@ -11,12 +12,12 @@ module XStreamly
       @appKey = appKey
       @email = email
       @password = password
-      @http = Net::HTTP.new('secure.x-stream.ly', 443)
+      @http = Net::HTTP.new('api.x-stream.ly', 443)
       @http.use_ssl = true
     end
 		
     def send(channel, eventName, data,persisted = false)
-	    req = Net::HTTP::Post.new(URI.encode('/api/v1.0/'+@appKey+'/channels/'+channel+'/events/'+eventName+'?persisted='+persisted.to_s), initheader = {'Content-Type' =>'application/json'})
+	    req = Net::HTTP::Post.new(URI.encode('/api/v1.1/'+@appKey+'/channels/'+channel+'/events/'+eventName+'?persisted='+persisted.to_s), initheader = {'Content-Type' =>'application/json'})
 	    req.basic_auth @email, @password
 
 	    req.body = data
