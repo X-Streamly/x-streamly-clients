@@ -9,7 +9,9 @@ module.exports = {
     callback();
   },
   tearDown: function(callback){
-    this.client.stop();
+    if(this.client){
+      this.client.stop();
+    }
     callback();
   },
   simpleMessage: function(test){
@@ -35,24 +37,13 @@ module.exports = {
 
     channel.trigger(this.messageType,{name:name});
   },
-  persistedMessageSkiped: function(test){
-    var channel = this.client.subscribe(this.channelName,{includeMyMessages:true});
-
-    channel.bind(this.messageType,function(data){
-      //the persisted message should be skipped
-      test.equals(true,data.valid1);
-      test.done();
-    });
-
-    channel.trigger(this.messageType,{valid1:false},true);
-    channel.trigger(this.messageType,{valid1:true});
-  },
   persistedMessageSent: function(test){
     var channel = this.client.subscribe(this.channelName,{includeMyMessages:true,includePersistedMessages:true});
 
     channel.bind(this.messageType,function(data,key){
       //the persisted message should be skipped
-      channel.removePersistedMessage(key);
+      //TODO:
+      //channel.removePersistedMessage(key);
       
       if(data.valid2){
         test.done();

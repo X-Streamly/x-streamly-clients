@@ -1,30 +1,19 @@
 var env = require('./env');
-var PresenceChannel = require('./presenceChannel');
+var Members = require('./members');
+var Member = require('./member');
 module.exports = Channel; 
 
-function Channel(name, appKey, cerrio,mainXStreamly,options) {
-    this.cerrio = cerrio;
+function Channel(name, appKey, connection,mainXStreamly,options) {
+    this.connection = connection;
     this.name = name;
     this.appKey = appKey;
     var securityCheckPassed = undefined;
     options = options || {};
-    this.uri = env.MESSAGE_URL;
-    var createPresenceChannel = true;
-    var isPrivate = false;
-    
-    if(options.presence!==undefined){
-    	createPresenceChannel = options.presence;
-    }
-    
-    if(options.private){
-    	isPrivate = options.private;
-    }
-    
     this.closed = false;
-    this.presenceChannel = null;
     var self = this;
-    
     this.bindings = [];
+    var members = new Members();
+    
 
     this.bind = function(eventName, callback) {
     	if(self.closed){
@@ -40,28 +29,29 @@ function Channel(name, appKey, cerrio,mainXStreamly,options) {
         this.bind(undefined, callback);
     };
 
-    this.close = function() {
-    
-        if(self.presenceChannel){
-       		self.presenceChannel.close();
-       		self.presenceChannel = undefined;
-       	}
-       	
+    this.close = function() {       	
     	if(self.stream){
-        	self.stream.close();
-        	self.stream = undefined;
-       	}
+      	self.stream.close();
+      	self.stream = undefined;
+     	}
        	
-       	self.bindings = [];
-       	
-       	delete mainXStreamly.channels[name];
-       	self.closed = true;
+     	self.bindings = [];
+     	self.closed = true;
     };
 
     this.fireEvent = function(eventName, data, dataKey) {
     	if(self.closed){
     		throw new Error("can't fire an event on a closed channel");
     	}
+    	
+    	if(typeof(data)==='string'){
+    	  try{
+    	    data= JSON.parse(data);
+    	  } catch(ex){
+    	    //oh well
+    	  }
+    	}
+    	    	
       for (key in self.bindings) {
         if(self.bindings.hasOwnProperty(key)){
           try{
@@ -82,136 +72,111 @@ function Channel(name, appKey, cerrio,mainXStreamly,options) {
     };
 
     var fireEvent = this.fireEvent;
-    var uri = this.uri;
     var triggersWaitingOnSubscriptionLoad = [];
     var subscriptionLoaded=false;
-    var nonPersistedId;
     
     this.trigger = function(eventName, data,persisted) {
-    	var me =this;
     	persisted = persisted || false;
     	if(securityCheckPassed ===false){
     	    throw "Security check not passed yet";
-    	}
-    	else if(!subscriptionLoaded){
+    	} else {
+    	  connection.onActive(function(){
+          connection.socket.emit("internal:send",{messages:[{AppKey:appKey,Channel:self.name,EventName:eventName, Message:data,Persisted:persisted}]});
+        },false);
+      }
+     };
+     
+     this.removePersistedMessage = function(key) {
+    	if(securityCheckPassed ===false){
+    	    throw "Security check not passed yet";
+    	}	else if(!subscriptionLoaded){
     		triggersWaitingOnSubscriptionLoad.push(function(){
-    			me.trigger(eventName,data,persisted);
+    			self.removePersistedMessage(key);
     		});
     	} else{
     		var uri =this.uri;
-    		cerrio.connection.onActive(function(){
-    		    if(nonPersistedId && persisted===false){
-    		        cerrio.modify(uri,{
-					    Key:nonPersistedId,
-			            Channel: name,
-			            AppKey:appKey,
-			            EventName: eventName,
-			            TimeStamp :(new Date()).toUTCString(),
-			            Message : JSON.stringify(data),
-			            SocketId :cerrio.connection.id,
-			            Persisted: persisted,
-			            Private : isPrivate
-			   	    });
-    		    }
-    		    else{
-    		        cerrio.add(uri,{
-					    Key:'',
-			            Channel: name,
-			            AppKey:appKey,
-			            EventName: eventName,
-			            TimeStamp :(new Date()).toUTCString(),
-			            Message : JSON.stringify(data),
-			            SocketId :cerrio.connection.id,
-			            Persisted: persisted,
-			            Source:'',
-			            ClientInfo:'',
-			            Private : isPrivate
-			   	    });
-    		    }
+    		connection.onActive(function(){
+		        sendDelete(uri,key);
 			 },false);
        }
      };
      
-     this.removePersistedMessage = function(key) {
-    	var me =this;
-    	if(securityCheckPassed ===false){
-    	    throw "Security check not passed yet";
-    	}
-    	else if(!subscriptionLoaded){
-    		triggersWaitingOnSubscriptionLoad.push(function(){
-    			me.removePersistedMessage(key);
-    		});
-    	} else{
-    		var uri =this.uri;
-    		cerrio.connection.onActive(function(){
-		        cerrio.sendDelete(uri,key);
-			 },false);
-       }
-     };
+     this.memberInfo = function(name,value){
+      if(undefined === value && typeof name === 'string') {
+        return options.userInfo[name];
+      } else {
+        if(typeof name === 'string') {
+          options.userInfo[name] = value;
+        } else if(typeof name === 'object') {
+          $.each(name, function(key, value) {
+            options.userInfo[key] = value;
+          });
+        }
+        connection.onActive(function(){
+          connection.socket.emit('internal:member_update',{appKey:appKey,channel:self.name,memberInfo:options.userInfo});
+        },false);
+      }
+     }
 
-    var mainChannel = this;
 
     var itemRecieved = function(item) {
-    	try{
-		    var data = JSON.parse(item.Message);
-
-		    if (self.presenceChannel) {
-		        data.member = self.presenceChannel.members.socketId(item.SocketId);
-		    }
-      } catch(ex){
-    	  data = item.Message;
-      }
-      fireEvent(item.EventName, data, item.Persisted ? item.Key : undefined);
+    	item.Message.member = members.socketId(item.SocketId);
+      fireEvent(item.EventName, item.Message, undefined);
     };
 
     var startAction = function() {
-        self.stream = cerrio.subscribe({
-            url: uri,
-            subscription: "@.AppKey='" + appKey + "' and @.Channel ='" + name + "' and @.SocketId != 'placeholder' and @.Private="+isPrivate,
-            addAction: function(item) {
-                if (item.Persisted === false) {
-                    nonPersistedId = item.Key;
-                }
-                if ((options.includePersistedMessages && item.Persisted) || subscriptionLoaded) {
-                    if (item.SocketId != cerrio.connection.id || options.includeMyMessages) {
-                        itemRecieved(item);
-                    }
-                }
+        connection.onActive(function(){
+          var membersLoaded = false;
+          stream = connection.subscribe(name,options.includePersistedMessages,{id:options.userId,memberInfo:options.userInfo},
+            function(data){
+              for(var key in data.messages){
+                itemRecieved(data.messages[key]);
+              }
             },
-            modifyAction: function(item) {
-                if (item.SocketId != cerrio.connection.id || options.includeMyMessages) {
-                    itemRecieved(item);
-                }
-            },
-            //updatesOnly:updatesOnly,
-            subscriptionLoaded: function() {
-                subscriptionLoaded = true;
-                for (t in triggersWaitingOnSubscriptionLoad) {
-                  try{
-                    triggersWaitingOnSubscriptionLoad[t]();
-                  }
-                  catch(ex){
-                    XStreamly.log(ex);
-                  }
-                }
-                if(options.subscriptionLoaded){
-                  options.subscriptionLoaded();
-                }
-            },
-            streamResetAction:function(){
-            	subscriptionLoaded = false;
-            	nonPersistedId = undefined;
-            }
-        });
+            function(memberInfos){
+              for(var memberInfoKey in memberInfos.members){
+                var memberInfo = memberInfos.members[memberInfoKey];
+                if(memberInfo.action === 'add'){
+                  var member = members.get(memberInfo.item.MemberId);
+                  
+                  if(!member){
+                    member = new Member(memberInfo.item.MemberId,memberInfo.item.Info);
+                    members.add(member);
 
-        if (createPresenceChannel) {
-            self.presenceChannel = new PresenceChannel(name, appKey, cerrio, options.userId, options.userInfo, mainChannel,isPrivate);
-            self.presenceChannel.start();
-            mainChannel.memberId = self.presenceChannel.memberId;
-            mainChannel.memberInfo = function(name, value) {
-              self.presenceChannel.memberInfo(name, value);
-            };
-        }
+                    if(memberInfo.item.MemberId==options.userId){
+                      membersLoaded = true;
+                      fireEvent("xstreamly:subscription_succeeded",members);
+                    } else {
+                      fireEvent("xstreamly:member_added",member);
+                    }
+                  }
+                  
+                  member.addRecord(memberInfo.item);
+                } else if (memberInfo.action === 'delete'){
+                  var member = members.get(memberInfo.item.MemberId);
+                  if(member){
+                    member.removeRecord(memberInfo.item.Key);
+                    if(!member.alive()){
+                      members.remove(memberInfo.item.MemberId);
+                      fireEvent("xstreamly:member_removed",member);
+                    }
+                  }
+                } else if (memberInfo.action === 'modify'){
+                  var member = members.get(memberInfo.item.MemberId);
+                  if(member){
+                    try{
+                      member.memberInfo = JSON.parse(memberInfo.item.Info);
+                    } catch(ex){
+                      env.log('couldn\'t parse member info: '+memberInfo.item.Info+ ' ex: '+ex)
+                    }
+                    fireEvent("xstreamly:member_modified",member);
+                  }
+                }
+              }
+            }
+          );
+          
+        },true);
     };
     
     startAction();

@@ -1,6 +1,6 @@
 {
   "name" : "xstreamly-client",
-  "version" : "0.1.3",
+  "version" : "0.2.0",
   "author" : "Brian Willard <bwillard@x-stream.ly>",
   "description" : "a client for x-stream.ly (http://x-stream.ly)",
   "dependencies" : {

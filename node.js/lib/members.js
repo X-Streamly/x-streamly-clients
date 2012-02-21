@@ -18,7 +18,7 @@ function Members(){
         this.count++;
     }
     
-    this.remove= function(memberId){
+    this.remove = function(memberId){
         delete this.members[memberId];
         this.count--;
     }

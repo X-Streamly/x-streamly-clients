@@ -1,138 +1,103 @@
 var Channel = require('./channel');
-var Cerrio = require('./cerrio/cerrio');
 var env = require ('./env');
+var http = require('http');
+var Connection = require('./connection');
 
 module.exports= XStreamly;
 
+XStreamly.overrideServer = undefined;
+XStreamly.restEndPoint = 'api.x-stream.ly';
+
 function XStreamly(key,securityToken){
   this.key = key;
-  this.cerrio = new Cerrio(env.port);
-  this.connection = this.cerrio.connection;
-  this.channels = {};
-  this.bindings = [];
+  this.connection = new Connection(key);
   this.onActiveBindings = [];
   var self = this;
+  
+  
+  if(XStreamly.overrideServer){
+      this.connection.setAddress(XStreamly.overrideServer);
+  } else {
+    http.get({
+        host: XStreamly.restEndPoint,
+        port: 80,
+        path: '/api/v1.1/'+key+'/appPool/'
+      },
+      function(res){
+        var data='';
+        res.on('data',function(chunk){
+          data+=chunk;
+        });
+        res.on('end',function(){
+          try{
+            var responseObject = JSON.parse(data);
+            self.connection.setAddress(responseObject.machine);
+          } catch(ex){
+            env.log('got error parsing: '+data+ ' '+ex.message);
+          }
+        });      }
+    ).on('error',function(e){
+      env.log('got error: '+e.message);
+    });
+  }
+  
+  this.connection.onActive(function(){
+  	self.onActiveBindings.forEach(function(value){
+  	  try{
+  		  value(self.connection.socket.socket.sessionid);
+  		} catch (ex){
+  		  env.reportError(ex);
+  		}
+  	});
+  });
+  
+  
+  this.connection.applySession(securityToken);
       
   this.subscribe = function(channelName,options) {
   	if(!channelName.match(/^[\w\s:-]+$/)){
   		throw channelName+" isn't a valid name, channel names should only contains letters numbers and -_";
   	}
   	options = options || {};
-      if (channelName in this.channels) {
-          return this.channels[channelName];
-      }
 
-      var channel = new Channel(channelName, this.key, this.cerrio,this,options);
-      this.channels[channelName] = channel;
-
-      for (key in this.bindings) {
-          channel.bind(this.bindings[key].name,this.bindings[key].func);
-      }
-      
-      return channel;
+    return new Channel(channelName, this.key, this.connection,this,options);
   };
 
-  this.listChannels = function(callback) {
-      var knownChannels = {};
-      var subscription = this.cerrio.subscribe({
-          url: env.MESSAGE_URL,
-          //only get adds
-          subscription: "modified(@.Key) and @.AppKey='" + this.key + "'",
-          addAction: function(item) {
-          if (!knownChannels.hasOwnProperty(item.Channel)) {
-                  knownChannels[item.Channel] = true;
-                  callback(item.Channel);
-              }
-          }
-      });
-
-      return { cancel: 
-      	function() {
-          	subscription.close();
-      	} 
-      };
-  };
   
   this.listActiveChannels = function(callback) {
-      var knownChannels = {};
-      env.log(this.key);
-      var subscription = this.cerrio.subscribe({
-          url: 'PicTacToe/XStreamly/StatsPresence',
-          //only get adds
-          subscription: "@.AppKey='" + this.key + "'",
-          addAction: function(item) {
-                knownChannels[item.Key] = item;
-                callback(item);
-          },
-          modifyAction: function(item) {
-                var saved = knownChannels[item.Key];
-                if(undefined!==item.MaxConcurrentConnections){
-                  saved.MaxConcurrentConnections = item.MaxConcurrentConnections;
-                }
-                
-                if(undefined!==item.CurrentConcurrentConnections){
-                  saved.CurrentConcurrentConnections = item.CurrentConcurrentConnections;
-                }
-                callback(saved);
+    var id = this.connection.id+'|activeChannels'+Math.random();
+    var closed= false;
+    var subscriptionData = {id:id,appKey:key};
+    this.connection.onActive(function(connection){
+      connection.socket.emit('internal:channels:subscribe',subscriptionData);
+      
+      connection.socket.on('internal:channel:'+id,function(data){
+        if(!closed){
+          for(var key in data){
+            callback(data[key]);
           }
+        }
       });
-
-      return { cancel: 
-      	function() {
-          	subscription.close();
-      	} 
-      };
+    },true);
+    
+    return {close:function(){
+      closed = true;
+      self.connection.onActive(function(connection){
+        connection.socket.emit('internal:channels:unsubscribe',subscriptionData);
+      },false);
+    }}
   };
 
-  this.unsubscribe = function(channelName) {
-      if (channelName in this.channels) {
-          this.channels[channelName].close();
-          delete this.channels[channelName];
-      }
-  };
-  
-  this.deleteChannel = function(channelName){
-    var subscription = this.cerrio.subscribe({
-          url: env.MESSAGE_URL,
-          //only get adds
-          subscription: "@.AppKey='" + this.key + "' and @.Channel = '"+channelName+"'",
-          addAction: function(item) {
-                self.cerrio.sendDelete(env.MESSAGE_URL,item.Key);
-          },
-          subscriptionLoaded:function(){
-            subscription.close();
-          }
-      });
-  }
-  
-  this.channel = function(channelName){
-      return this.channels[channelName];
-  };
 
-  this.bind = function(eventName, callback) {
-      for (key in this.channels) {
-          var channel = this.channels[key].bind(eventName, callback);
-      }
-      this.bindings.push({ name: eventName, func: callback});
-  };
-
-  this.bind_all = function(callback) {
-      this.bind(undefined, callback);
-  }
-  
   this.stop = function() {
   	env.log('stopping');
-      this.cerrio.stop();
-      for (key in this.channels) {
-          this.channels[key].close();
-      }
-      this.channels = {};
-      this.onActiveBindings = [];
-      this.bindings = [];
+    this.connection.stop();
+
+    this.onActiveBindings = []
   };
   
   this.addSecurityToken = function(securityToken){
-  	this.cerrio.applySession(securityToken);
+  	this.connection.applySession(securityToken);
   };
   
   this.onActive = function(callback){
@@ -145,17 +110,4 @@ function XStreamly(key,securityToken){
   		this.onActiveBindings.splice(index,1);
   	}
   };
-  
-  this.cerrio.connection.onActive(function(){
-  	self.onActiveBindings.forEach(function(value){
-  	  try{
-  		  value(self.cerrio.connection.socket.socket.sessionid);
-  		} catch (ex){
-  		  env.reportError(ex);
-  		}
-  	});
-  });
-  
-  
-  this.cerrio.applySession(securityToken);
 }
