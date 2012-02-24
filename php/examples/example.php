@@ -34,7 +34,7 @@ echo "message usage: " . json_encode($xstreamlyClient->getUsageData()) ."\n";
 
 
 //managing security tokens
-$securityToken = $xstreamlyClient->createToken(true,true,null,"MyEvent",null,false);
+$securityToken = $xstreamlyClient->createToken(true,true,null,"MyEvent",null,1000);
 echo "security token key: " . $securityToken . "\n";
 
 echo "callback: " . json_encode($xstreamlyClient->getTokens(null,"MyEvent",null)) . "\n";

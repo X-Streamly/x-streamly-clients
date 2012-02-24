@@ -70,7 +70,7 @@ class XStreamlyClient{
     return $this->genericGet('/api/v1.1/' . $this->appKey . '/security/' . $params);
   }
   
-  public function createToken($canRead = true, $canWrite = true, $channel = null, $event = null, $source = null, $isPrivate = false){
+  public function createToken($canRead = true, $canWrite = true, $channel = null, $event = null, $source = null, $expiration = false){
     $data = array();
     
     if(!$canRead || !$canWrite){
@@ -95,6 +95,11 @@ class XStreamlyClient{
     if(null!=$source){
       $data['source']=$source;
     }
+    
+    if(null!=$expiration){
+      $data['expiration']=$expiration;
+    }
+    
     
     return $this->genericPost('/api/v1.1/' . $this->appKey . '/security',$data);
   }
