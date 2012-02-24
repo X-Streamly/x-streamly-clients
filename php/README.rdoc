@@ -67,7 +67,7 @@ security tokens:
 to create a new security token use the createToken method, the signature for the method is:
   $securityToken = $xstreamlyClient->createToken(read,write,channel,event,source,expiration);
   
-that will return the GUID of the new token that is created.  Expiration is given in seconds past now., to then delete a token call:
+that will return the GUID of the new token that is created.  Expiration is given in seconds past now. To then delete a token call:
 
   $xstreamlyClient->deleteToken($securityToken);
   
